@@ -55,7 +55,7 @@ ${R3BROOT_SOURCE_DIR}/r3bbase
 ${R3BROOT_SOURCE_DIR}/r3bdata/beammonitorData
 ${R3BROOT_SOURCE_DIR}/r3bdata/califaData
 ${R3BROOT_SOURCE_DIR}/r3bdata/neulandData
-${R3BROOT_SOURCE_DIR}/r3bdata/pspData
+${R3BROOT_SOURCE_DIR}/r3bdata/pspxData
 ${R3BROOT_SOURCE_DIR}/r3bdata/fibData
 ${R3BROOT_SOURCE_DIR}/r3bdata/sfibData
 ${R3BROOT_SOURCE_DIR}/r3bdata/losData
@@ -67,7 +67,6 @@ ${R3BROOT_SOURCE_DIR}/r3bdata/tofData
 ${R3BROOT_SOURCE_DIR}/r3bdata/tofiData
 ${R3BROOT_SOURCE_DIR}/r3bdata/pdcData
 ${R3BROOT_SOURCE_DIR}/r3bdata/strawtubesData
-${R3BROOT_SOURCE_DIR}/psp/par
 ${R3BROOT_SOURCE_DIR}/r3bdata/amsData
 ${R3BROOT_SOURCE_DIR}/r3bdata/footData
 ${R3BROOT_SOURCE_DIR}/r3bdata/alpideData
@@ -116,7 +115,8 @@ set(SRCS
 ./trloii/R3BTrloiiScalerReader_s467.cxx
 ./wr/R3BTimestampMasterReader.cxx
 ./pspx/R3BPspxReader.cxx
-./pspx/R3BS515PspxReader.cxx
+./pspx/R3BPspxReader_s515.cxx
+#./pspx/R3BS515PspxReader.cxx
 ./fibers/R3BBunchedFiberReader.cxx
 ./fibers/R3BBunchedFiberSPMTTrigReader.cxx
 ./beammonitor/R3BBeamMonitorReader.cxx
@@ -200,7 +200,7 @@ Set(STRUCT_HEADERS
 ./fibers/ext_h101_fib31.h
 ./fibers/ext_h101_fib32.h
 ./fibers/ext_h101_fib33.h
-./los/ext_h101_los_dez19.h
+./los/ext_h101_los.h
 ./rolu/ext_h101_rolu.h
 ./rolu/ext_h101_rolu_online.h
 ./frssci/ext_h101_frssci.h
@@ -210,7 +210,8 @@ Set(STRUCT_HEADERS
 ./tofd/ext_h101_tofd.h
 ./tofi/ext_h101_tofi.h
 ./tofd/ext_h101_ptof.h
-./pspx/ext_h101_psp.h
+./pspx/ext_h101_pspx.h
+./pspx/ext_h101_pspx_s515.h
 ./califa/ext_h101_califa.h
 ./neuland/ext_h101_raw_nnp_tacquila.h
 ./neuland/ext_h101_raw_nnp_tamex.h
@@ -242,7 +243,7 @@ set(LINKDEF SourceLinkDef.h)
 set(DEPENDENCIES
     GeoBase ParBase MbsAPI Base FairTools
     R3BBase R3BData Core Geom GenVector
-    Physics Matrix MathCore R3BPsp
+    Physics Matrix MathCore R3BPspx
     ${ucesb_LIBRARY_SHARED})
 set(LIBRARY_NAME R3Bsource)
 

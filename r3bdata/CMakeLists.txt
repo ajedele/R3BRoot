@@ -42,7 +42,7 @@ ${R3BROOT_SOURCE_DIR}/r3bdata/sci2Data
 ${R3BROOT_SOURCE_DIR}/r3bdata/sci8Data
 ${R3BROOT_SOURCE_DIR}/r3bdata/mfiData
 ${R3BROOT_SOURCE_DIR}/r3bdata/fibData
-${R3BROOT_SOURCE_DIR}/r3bdata/pspData
+${R3BROOT_SOURCE_DIR}/r3bdata/pspxData
 ${R3BROOT_SOURCE_DIR}/r3bdata/neulandData
 ${R3BROOT_SOURCE_DIR}/r3bdata/actarData
 ${R3BROOT_SOURCE_DIR}/r3bdata/strawtubesData
@@ -113,8 +113,6 @@ trackerData/R3BTargetDigi.cxx
 trackerData/R3BTarget2pDigi.cxx
 mfiData/R3BMfiPoint.cxx
 mfiData/R3BMfiDigi.cxx
-pspData/R3BPspPoint.cxx
-pspData/R3BPspDigi.cxx
 neulandData/R3BNeulandTacquilaMappedData.cxx
 neulandData/R3BNeulandCalData.cxx
 neulandData/R3BNeulandPoint.cxx
@@ -122,10 +120,13 @@ neulandData/R3BNeulandHit.cxx
 neulandData/R3BNeulandMultiplicity.cxx
 neulandData/R3BNeulandCluster.cxx
 neulandData/R3BNeulandNeutron.cxx
-pspData/R3BPspxMappedData.cxx
-pspData/R3BPspxPrecalData.cxx
-pspData/R3BPspxCalData.cxx
-pspData/R3BPspxHitData.cxx
+pspxData/R3BPspxPoint.cxx
+pspxData/R3BPspxDigi.cxx
+pspxData/R3BPspxMappedData.cxx
+pspxData/R3BPspxPoscalData.cxx
+pspxData/R3BPspxInterstripPoscalData.cxx
+pspxData/R3BPspxCalData.cxx
+pspxData/R3BPspxHitData.cxx
 losData/R3BLosMappedData.cxx
 losData/R3BLosCalData.cxx
 losData/R3BLosTCalData.cxx

@@ -13,76 +13,70 @@
 
 #include "FairLogger.h"
 #include "FairRootManager.h"
-#include "FairRuntimeDb.h"
-
-#include "R3BLogger.h"
-#include "R3BPspxMappedData.h"
-#include "R3BPspxMappedPar.h"
-#include "R3BPspxReader.h"
-
 #include "TClonesArray.h"
 #include "ext_data_struct_info.hh"
+#include <iostream>
+
+#include "R3BLogger.h"
+#include "R3BPspxReader.h"
+#include "R3BPspxMappedData.h"
 
 extern "C"
 {
 #include "ext_data_client.h"
-#include "ext_h101_psp.h"
+#include "ext_h101_pspx.h"
 }
 
-#define LENGTH(x) (sizeof(x) / sizeof(x)[0])
+#define LENGTH(x) (sizeof x / sizeof *x)
+#define MAX_PSPX_DETECTORS (sizeof data->PSPX / sizeof data->PSPX[0])
 
-auto constexpr NUM_PSPX = LENGTH((EXT_STR_h101_PSP_onion::PSPX));
-R3BPspxReader::R3BPspxReader(EXT_STR_h101_PSP* data, size_t offset)
+R3BPspxReader::R3BPspxReader(EXT_STR_h101_PSPX* data, size_t offset)
     : R3BReader("R3BPspxReader")
     , fData(data)
     , fOffset(offset)
     , fOnline(kFALSE)
-    , fMappedItems(2 * NUM_PSPX) // number of faces of detectors
+    , fArray(new TClonesArray("R3BPspxMappedData")) // number of faces of detectors
 {
-    for (Int_t d = 0; d < 2 * NUM_PSPX; d++)
-    {
-        fMappedItems[d] = new TClonesArray("R3BPspxMappedData");
-    }
-    printf("Length: %lu\n", NUM_PSPX);
-    R3BLOG(info, "Created " << 2 * NUM_PSPX << " detectors.");
 }
 
 R3BPspxReader::~R3BPspxReader()
 {
-    R3BLOG(debug1, "");
-    for (Int_t d = 0; d < 2 * NUM_PSPX; d++)
-    {
-        delete fMappedItems[d];
-    }
+    if (fArray) {delete fArray;}
 }
 
-Bool_t R3BPspxReader::Init(ext_data_struct_info* a_struct_info)
+/**
+ * Initialize output data. Read input data.
+ */
+bool R3BPspxReader::Init(ext_data_struct_info* a_struct_info)
 {
-    Int_t ok;
-    R3BLOG(info, "");
-    EXT_STR_h101_PSP_ITEMS_INFO(ok, *a_struct_info, fOffset, EXT_STR_h101_PSP, 0);
+    int ok;
+    R3BLOG(info, "R3BPspxReader::Init");
+    EXT_STR_h101_PSPX_ITEMS_INFO(ok, *a_struct_info, fOffset, EXT_STR_h101_PSPX, 0);
+
     if (!ok)
     {
         R3BLOG(error, "Failed to setup structure information.");
         return kFALSE;
     }
-    const char xy[2] = { 'x', 'y' }; // orientation of detector face
-    // Register output array in tree
-    for (Int_t d = 0; d < NUM_PSPX; d++)
-    {
-        for (Int_t f = 0; f < 2; f++)
-        {
-            // Register output array in tree
-            FairRootManager::Instance()->Register(Form("Pspx%d_%cMapped", d + 1, xy[f]),
-                                                  Form("Pspx%d_%c", d + 1, xy[f]),
-                                                  fMappedItems[2 * d + f],
-                                                  !fOnline);
-            fMappedItems[2 * d + f]->Clear();
-            R3BLOG(info, "Registered Pspx" << d + 1 << "_" << xy[f]);
-        }
-    }
+
+    //Register output data array in tree 
+    FairRootManager::Instance()->Register("PspxMapped", "PSPX", fArray, kTRUE);
+    Reset();
     memset(fData, 0, sizeof *fData);
 
+    // Register output array in tree
+    EXT_STR_h101_PSPX_onion* data = (EXT_STR_h101_PSPX_onion*)fData;
+    for (int dd = 0; dd < MAX_PSPX_DETECTORS; dd++)
+    {
+        for (int ff = 0; ff < 2; ff++)
+        {
+		for (int ss = 0; ss < 2; ss++)
+		{
+			data->PSPX[dd].F[ff].S[ss].E = 0;
+			data->PSPX[dd].F[ff].S[ss].T = 0;
+              }
+        }
+    }
     return kTRUE;
 }
 
@@ -91,55 +85,39 @@ Bool_t R3BPspxReader::Init(ext_data_struct_info* a_struct_info)
  * Converts plain raw data to multi-dimensional array.
  * Ignores energies with an error message.
  */
-Bool_t R3BPspxReader::R3BRead()
+bool R3BPspxReader::R3BRead()
 {
-    auto* data = reinterpret_cast<EXT_STR_h101_PSP_onion*>(fData);
-
-#if 0
-    // this is the data structure we have to read:
-    struct {
-      struct {
-        struct {
-          uint32_t E;
-          uint32_t EI[32 /* E */];
-          uint32_t Ev[32 /* E */];
-        } S[2];
-      } F[2];
-    } PSPX[N];
-
-    F = Face (front/back of detector)
-    S = Side (end of strip)
-#endif
+    EXT_STR_h101_PSPX_onion* data = reinterpret_cast<EXT_STR_h101_PSPX_onion*>(fData);
 
     // loop over all detectors
-    for (Int_t d = 0; d < LENGTH(data->PSPX); d++)
+    for (int32_t det = 0; det < MAX_PSPX_DETECTORS; det++)
     {
         // loop over faces
-        for (Int_t f = 0; f < 2; f++)
+        for (int32_t face = 0; face < 2; face++)
         {
-            std::vector<R3BPspxMappedData*> datas(LENGTH(data->PSPX[0].F[0].S[0].EI));
             // loop over strip sides
-            for (Int_t s = 0; s < 2; s++)
+            for (int32_t side = 0; side < 2; side++)
             {
-                auto const& dfs = data->PSPX[d].F[f].S[s];
-                uint32_t numChannels = dfs.E;
-                // loop over channels
-                for (Int_t i = 0; i < numChannels; i++)
+                auto const& dfs = data->PSPX[det].F[face].S[side];
+                uint32_t numHitsE = dfs.E;
+                // loop over hits
+                for (uint32_t i = 0; i < numHitsE; i++)
                 {
-                    int32_t strip = dfs.EI[i]; // counting from 1 to max number of channels for an detector
-                    int32_t energy = dfs.Ev[i];
-                    if (energy < 0)
-                        energy = -1. * energy; // make sure energy values are positive. Necessary for compatibilty with
-                                               // GSI Febex firmware
+      		    int32_t strip     = dfs.EI[i]; // counting from 1 to max number of channels for an detector
+                    int32_t energy    = dfs.Ev[i];
+                    int32_t timestrip = dfs.TI[i];
+                    int32_t time      = dfs.Tv[i];
+                    int32_t trigger;
+		    bool overflow;
+		    if (dfs.EI[i]<16) trigger = dfs.TT[0];
+                    else trigger= dfs.TT[1];
+		    if (((det==0 || det==1) && face==1) || ((det==2 || det==3) && face==0) || ((det==4 || det==5) && face==1)) {energy = energy*-1;} //FEBEX collects negative energies for the p-side of the detector (hence the side requirement)
+                    if (energy < 0) overflow = kTRUE; //negative energy is overflow -> bad 
+		    else overflow = kFALSE; //negative energy is overflow -> bad 
 
-                    // if (!datas[strip-1]) datas[strip-1] = new ((*fMappedItems[d])[fMappedItems[d]->GetEntriesFast()])
-                    // R3BPspxMappedData(f+1,strip);
-                    if (!datas[strip - 1])
-                        datas[strip - 1] = new ((*fMappedItems[2 * d + f])[fMappedItems[2 * d + f]->GetEntriesFast()])
-                            R3BPspxMappedData();
-                    // assert(-1 == datas[strip-1]->GetEnergy(s));
-                    datas[strip - 1]->SetValue(s, strip, energy);
-                }
+                    new ((*fArray)[fArray->GetEntriesFast()])
+                    R3BPspxMappedData(det+1, face+1, side+1, strip, energy, time, trigger, overflow);
+		}
             }
         }
     }
@@ -148,10 +126,7 @@ Bool_t R3BPspxReader::R3BRead()
 
 void R3BPspxReader::Reset()
 {
-    for (Int_t d = 0; d < 2 * NUM_PSPX; d++)
-    {
-        fMappedItems[d]->Clear();
-    }
+    if (fArray) fArray->Clear();
 }
 
-ClassImp(R3BPspxReader);
+ClassImp(R3BPspxReader)

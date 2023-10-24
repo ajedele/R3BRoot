@@ -151,13 +151,4 @@ void R3BTofDHitPar::PrintModuleParams(Int_t plane, Int_t paddle)
     }
 }
 
-void R3BTofDHitPar::DrawModuleParams(Int_t plane, Int_t paddle)
-{
-    R3BTofDHitModulePar* par = GetModuleParAt(plane, paddle);
-    if (NULL != par)
-    {
-        par->DrawParams();
-    }
-}
-
 ClassImp(R3BTofDHitPar);

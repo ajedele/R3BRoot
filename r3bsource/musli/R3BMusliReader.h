@@ -13,6 +13,7 @@
 
 #pragma once
 
+#include <TClonesArray.h>
 #include "R3BReader.h"
 #include "TClonesArray.h"
 #include <Rtypes.h>
@@ -35,7 +36,7 @@ class R3BMusliReader : public R3BReader
     virtual Bool_t Init(ext_data_struct_info*) override;
 
     // Read data from full event structure
-    virtual Bool_t R3BRead() override;
+    virtual Bool_t Read() override;
 
     // Reset
     virtual void Reset() override;
