@@ -28,6 +28,7 @@
 #pragma link C++ class R3BTofDMappingPar+;
 #pragma link C++ class R3BTofDMapped2CalPar+;
 #pragma link C++ class R3BTofDCal2HitPar+;
+#pragma link C++ class R3BTofDCal2HitPar_elorenz+;
  
 #pragma link C++ class R3BTofDMapped2Cal+;
 #pragma link C++ class R3BTofDCal2Hit+;

@@ -14,6 +14,7 @@
 #ifndef R3BTofDCal2Hit_H
 #define R3BTofDCal2Hit_H 1
 
+#define VFTX_CLOCK_MHZ 200 
 #define N_TOFD_HIT_PLANE_MAX 4
 #define N_TOFD_HIT_PADDLE_MAX 44
 
@@ -92,7 +93,7 @@ class R3BTofDCal2Hit : public FairTask
 
     virtual void SetParContainers();
 
-    virtual void CreateHistograms(Int_t iPlane, Int_t iBar);
+    virtual void CreateHistograms();
 
     /**
      * Method for setting the nuclear charge of main beam
@@ -139,61 +140,60 @@ class R3BTofDCal2Hit : public FairTask
      */
     Double_t walk(Double_t Q, Double_t par1, Double_t par2, Double_t par3, Double_t par4, Double_t par5);
 
-    R3BCoarseTimeStitch* fTimeStitch;
-    R3BEventHeader* header; /**< Event header - input data. */
-    R3BTofDHitPar* fHitPar; /**< Hit parameter container. */
-    R3BTofDMappingPar* fMapPar;
+    R3BCoarseTimeStitch* fTimeStitch{};
+    R3BEventHeader* header{}; /**< Event header - input data. */
+    R3BTofDHitPar* fHitPar{}; /**< Hit parameter container. */
+    R3BTofDMappingPar* fMapPar{};
 
-    Bool_t fOnline;
-    TClonesArray* fCalItems;        /**< Array with Cal items - input data. */
-    TClonesArray* fCalTriggerItems; /**< Array with trigger Cal items - input data. */
-    TClonesArray* fHitItems;        /**< Array with Hit items - output data. */
-    UInt_t fNofHitPars;             /**< Number of modules in parameter file. */
-    Double_t fClockFreq;            /**< Clock cycle in [ns]. */
-    Int_t fTrigger;                 /**< Trigger value. */
-    Int_t fTpat1;
-    Int_t fTpat2;
-    Double_t fTofdQ;
-    Bool_t fTofdHisto;
-    Bool_t fTofdTotPos;
-    UInt_t fnEvents;
-    UInt_t lasttpatevent;
-    UInt_t fNofPlanes;
-    UInt_t fPaddlesPerPlane; /**< Number of paddles per plane. */
-    UInt_t maxevent;
-    UInt_t wrongtrigger;
-    UInt_t wrongtpat;
-    UInt_t notpat;
-    UInt_t headertpat;
-    UInt_t events_in_cal_level;
-    UInt_t inbarcoincidence;
-    UInt_t eventstore;
-    UInt_t singlehit;
-    UInt_t multihit;
-    UInt_t bars_with_multihit;
-    UInt_t events_wo_tofd_hits;
-    UInt_t goodpair;
-    UInt_t goodpair4;
-    UInt_t goodpair3;
-    UInt_t goodpair1;
-    UInt_t goodpair2;
-    UInt_t goodpair5;
-    UInt_t goodpair6;
-    UInt_t goodpair7;
+    Bool_t fOnline = false;
+    TClonesArray* fCalItems{};                                       /**< Array with Cal items - input data. */
+    TClonesArray* fCalTriggerItems{};                                /**< Array with trigger Cal items - input data. */
+    TClonesArray* fHitItems; 	                                     /**< Array with Hit items - output data. */
+    UInt_t fNofHitPars = 0;                                          /**< Number of modules in parameter file. */
+    Double_t fClockFreq = (1. / VFTX_CLOCK_MHZ * 1000);              /**< Clock cycle in [ns]. */
+    Int_t fTrigger = -1;                                             /**< Trigger value. */
+    Int_t fTpat1 = -1;
+    Int_t fTpat2 = -1;
+    Double_t fTofdQ = 0;
+    Bool_t fTofdHisto = false;
+    Bool_t fTofdTotPos = false;
+    UInt_t fnEvents = 0;
+    UInt_t lasttpatevent = 0;
+    UInt_t fNofPlanes = 4;
+    UInt_t fPaddlesPerPlane = 44; /**< Number of paddles per plane. */
+    UInt_t maxevent = 0;
+    UInt_t wrongtrigger = 0;
+    UInt_t wrongtpat = 0;
+    UInt_t notpat = 0;
+    UInt_t headertpat = 0;
+    UInt_t events_in_cal_level = 0;
+    UInt_t inbarcoincidence = 0;
+    UInt_t eventstore = 0;
+    UInt_t singlehit = 0;
+    UInt_t multihit = 0;
+    UInt_t bars_with_multihit = 0;
+    UInt_t events_wo_tofd_hits = 0;
+    UInt_t goodpair = 0;
+    UInt_t goodpair4 = 0;
+    UInt_t goodpair3 = 0;
+    UInt_t goodpair1 = 0;
+    UInt_t goodpair2 = 0;
+    UInt_t goodpair5 = 0;
+    UInt_t goodpair6 = 0;
+    UInt_t goodpair7 = 0;
 
     // arrays of control histograms
-    TH1F* fhTpat;
-    TH1F* fhNoTpat;
-    TH2F* fhQvsPos[N_TOFD_HIT_PLANE_MAX][N_TOFD_HIT_PADDLE_MAX];
-    // TH2F* fhQvsTHit[N_TOFD_HIT_PLANE_MAX][N_TOFD_HIT_PADDLE_MAX];
-    // TH2F* fhTvsTHit[N_TOFD_HIT_PLANE_MAX][N_TOFD_HIT_PADDLE_MAX];
-    TH2F* fhQ[N_TOFD_HIT_PLANE_MAX];
-    TH2F* fhxy[N_TOFD_HIT_PLANE_MAX];
-    TH2F* fhQvsEvent[N_TOFD_HIT_PLANE_MAX];
-    TH2F* fhTdiff[N_TOFD_HIT_PLANE_MAX];
-    TH2F* fhTsync[N_TOFD_HIT_PLANE_MAX];
-    TH2F* fhQ0Qt[N_TOFD_HIT_PLANE_MAX];
-    TH2F* fhTvsQ[N_TOFD_HIT_PLANE_MAX];
+    TH1F* fhTpat{};
+    TH1F* fhNoTpat{};
+    TH2F* fhQvsPos[N_TOFD_HIT_PLANE_MAX][N_TOFD_HIT_PADDLE_MAX]{};
+    // TH2F* fhQvsTHit[N_TOFD_HIT_PLANE_MAX][N_TOFD_HIT_PADDLE_MAX]{};
+    TH2F* fhQ[N_TOFD_HIT_PLANE_MAX]{};
+    TH2F* fhxy[N_TOFD_HIT_PLANE_MAX]{};
+    TH2F* fhQvsEvent[N_TOFD_HIT_PLANE_MAX]{};
+    TH2F* fhTdiff[N_TOFD_HIT_PLANE_MAX]{};
+    TH2F* fhTsync[N_TOFD_HIT_PLANE_MAX]{};
+    TH2F* fhQ0Qt[N_TOFD_HIT_PLANE_MAX]{};
+    TH2F* fhTvsQ[N_TOFD_HIT_PLANE_MAX]{};
 
   public:
     ClassDef(R3BTofDCal2Hit, 1)

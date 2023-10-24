@@ -30,8 +30,9 @@ SCRIPT=$(echo $C3WTAR | sed 's/.tar$/.sh/' )
 cat >$SCRIPT <<EOF
 #!/bin/bash
 #SBATCH --output $OUTPUTREAL/logs/%j_%N.out
+#SBATCH --error $OUTPUTREAL/logs/%j_%N.err
 # for running unpackers:
-#SBATCH --mem 5G
+#SBATCH --mem 32G
 #SBATCH --cpus-per-task 2 --time 8:00:00 --partition main
 #SBATCH $SBATCH # set by $CONF
 #this script was automatically created by $USER on $(date)
