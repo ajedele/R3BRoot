@@ -105,13 +105,18 @@ class R3BRoluMapped2CalPar : public FairTask
      * @param nDets number of detectors.
      * @param nCh number of channels per detector (4+master trigger?)
      */
+<<<<<<< HEAD
     inline void SetNofModules(int nDets) { fNofDetectors = nDets; }
+=======
+    inline void SetNofModules(int nDets) {fNofDetectors = nDets;}
+>>>>>>> ROLU: Added reader without trigger for standard R3B use.
 
     // Accessor to select online mode
     void SetSkipTrigger(bool skip) { fSkipTrigger = skip; }
 
   private:
     int fUpdateRate = 1000000; /**< An update rate. */
+<<<<<<< HEAD
     int fMinStats = 100000;    /**< Minimum statistics required per module. */
     int fTrigger = -1;         /**< Trigger value. */
 
@@ -123,6 +128,18 @@ class R3BRoluMapped2CalPar : public FairTask
 
     int counter = 0;
     int fNEventsi = 0;              /**< Event counter. */
+=======
+    int fMinStats = 100000;   /**< Minimum statistics required per module. */
+    int fTrigger = -1;    /**< Trigger value. */
+
+    unsigned int fNofDetectors = 1; /**< Number of detectors. */
+    unsigned int fNofChannels = 4;  /**< Number of channels per detector. */
+    unsigned int fNofTypes = 2; /**< Number of time-types per channel ( TAMEX leading/trailing). */
+
+    bool fSkipTrigger = false;
+
+    int fNEventsi = 0;               /**< Event counter. */
+>>>>>>> ROLU: Added reader without trigger for standard R3B use.
     R3BTCalPar* fCal_Par{};         /**< Parameter container. */
     TClonesArray* fMapped{};        /**< Array with mapped data - input data. */
     TClonesArray* fMappedTrigger{}; /**< Array with mapped trigger data - input data. */

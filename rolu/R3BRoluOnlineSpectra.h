@@ -46,7 +46,7 @@ class R3BEventHeader;
 class R3BRoluOnlineSpectra : public FairTask
 {
   public:
-    // Default constructor.
+    //Default constructor.
     R3BRoluOnlineSpectra();
 
     // Standard constructor.
@@ -61,14 +61,14 @@ class R3BRoluOnlineSpectra : public FairTask
     // Method for event loop implementation.
     virtual void Exec(Option_t* option);
 
-    // A method for finish of processing of an event.
+    //A method for finish of processing of an event.
     virtual void FinishEvent();
 
     // Method for finish of the task execution.
     virtual void FinishTask();
 
-    // Method for setting the trigger value.
-    //  @param trigger 1 - physics, 2 - offspill, -1 - all events.
+    //Method for setting the trigger value.
+    // @param trigger 1 - physics, 2 - offspill, -1 - all events.
     inline void SetTrigger(int trigger) { fTrigger = trigger; }
     inline void SetTpat(int tpat) { fTpat = tpat; }
 

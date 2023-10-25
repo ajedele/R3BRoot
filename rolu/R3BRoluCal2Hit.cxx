@@ -72,14 +72,10 @@ R3BRoluCal2Hit::~R3BRoluCal2Hit()
 {
     for (int iDet = 0; iDet < fNofDetectors; iDet++)
     {
-        if (fhQ_L[iDet])
-            delete (fhQ_L[iDet]);
-        if (fhQ_R[iDet])
-            delete (fhQ_R[iDet]);
-        if (fhQ_O[iDet])
-            delete (fhQ_O[iDet]);
-        if (fhQ_U[iDet])
-            delete (fhQ_U[iDet]);
+        if (fhQ_L[iDet]) delete (fhQ_L[iDet]);
+        if (fhQ_R[iDet]) delete (fhQ_R[iDet]);
+        if (fhQ_O[iDet]) delete (fhQ_O[iDet]);
+        if (fhQ_U[iDet]) delete (fhQ_U[iDet]);
     }
 
     if (fHitItems)
@@ -122,8 +118,7 @@ InitStatus R3BRoluCal2Hit::ReInit() { return kSUCCESS; }
 void R3BRoluCal2Hit::Exec(Option_t* option)
 {
     if (fnEvents / 100000. == (int)fnEvents / 100000)
-        std::cout << "\rEvents: " << fnEvents << " / " << maxevent << " (" << (int)(fnEvents * 100. / maxevent)
-                  << " %) " << std::flush;
+        std::cout << "\rEvents: " << fnEvents << " / " << maxevent << " (" << (int)(fnEvents * 100. / maxevent) << " %) " << std::flush;
 
     // min,max,Nbins for ToT spectra
     double fhQmin = 0.;
@@ -168,8 +163,7 @@ void R3BRoluCal2Hit::Exec(Option_t* option)
 
     int nParts = fCalItems->GetEntriesFast();
 
-    if (nParts < 1 || nTrig < 1)
-        return;
+    if (nParts < 1 || nTrig < 1) return;
 
     int iDet = 0;
     using A = boost::multi_array<double, 3>;
