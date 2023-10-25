@@ -89,17 +89,28 @@ InitStatus R3BRoluMapped2CalPar::Init()
 
     if (fSkipTrigger == false)
     {
+<<<<<<< HEAD
         fMappedTrigger = dynamic_cast<TClonesArray*>(rm->GetObject("RoluTriggerMapped"));
         if (!fMappedTrigger)
         {
             LOG(warn) << "R3BRoluMapped2CalPar::Branch RoluMapped not found";
         }
+=======
+    	fMappedTrigger = dynamic_cast<TClonesArray*>(rm->GetObject("RoluTriggerMapped"));
+    	if (!fMappedTrigger)
+    	{
+    	    LOG(warn) << "R3BRoluMapped2CalPar::Branch RoluMapped not found";
+    	}
+>>>>>>> rolu
     }
 
     fCal_Par = dynamic_cast<R3BTCalPar*>(FairRuntimeDb::instance()->getContainer("RoluTCalPar"));
     fCal_Par->setChanged();
 
+<<<<<<< HEAD
     printf("fMinStats: %d\n", fMinStats);
+=======
+>>>>>>> rolu
     fEngine = new R3BTCalEngine(fCal_Par, fMinStats);
 
     return kSUCCESS;
@@ -116,10 +127,14 @@ void R3BRoluMapped2CalPar::Exec(Option_t* option)
     for (unsigned int iHit = 0; iHit < nHits; iHit++)
     {
         R3BRoluMappedData* hit = dynamic_cast<R3BRoluMappedData*>(fMapped->At(iHit));
+<<<<<<< HEAD
         if (!hit)
         {
             continue;
         }
+=======
+        if (!hit) {continue;}
+>>>>>>> rolu
 
         // channel numbers are supposed to be 1-based (1..n)
         unsigned int iDetector = hit->GetDetector() - 1; // now 0..n-1
@@ -151,7 +166,11 @@ void R3BRoluMapped2CalPar::Exec(Option_t* option)
     {
         nHits = fMappedTrigger->GetEntries();
         // Loop over mapped triggers
+<<<<<<< HEAD
         for (int iHit = 0; iHit < nHits; iHit++)
+=======
+        for (int i = 0; i < nHits; i++)
+>>>>>>> rolu
         {
             counter = counter + 1;
             auto mapped = dynamic_cast<R3BRoluMappedData const*>(fMappedTrigger->At(iHit));

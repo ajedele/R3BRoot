@@ -29,6 +29,8 @@
 
 #define VFTX_CLOCK_MHZ 200
 
+#define VFTX_CLOCK_MHZ 200
+
 class TClonesArray;
 class R3BTCalModulePar;
 class R3BTCalPar;
