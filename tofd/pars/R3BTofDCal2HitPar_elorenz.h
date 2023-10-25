@@ -67,8 +67,6 @@ class R3BTofDCal2HitPar_elorenz : public FairTask
 		 */
 		virtual InitStatus Init();
 
-		virtual void SetParContainers();
-
 		/**
 		 * Method for event loop implementation.
 		 * Is called by the framework every time a new event is read.
@@ -228,7 +226,6 @@ class R3BTofDCal2HitPar_elorenz : public FairTask
 		unsigned int fNofModules = fNofPlanes * fPaddlesPerPlane;      /* Total number of modules (=edges) to calibrate */
 
 		unsigned int fNEvents = 0; /* Event counter. */
-		R3BTofDMappingPar* fMapPar{};
 		R3BTofDHitPar* fHitPar{};         /* Parameter container. */
 		TClonesArray* fCalData{};         /* Array with mapped data - input data. */
 		TClonesArray* fCalTriggerItems{}; /* Array with trigger Cal items - input data. */

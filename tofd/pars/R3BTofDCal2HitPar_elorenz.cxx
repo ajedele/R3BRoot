@@ -42,6 +42,8 @@
 #include "TSystem.h"
 #include "TVirtualFitter.h"
 
+#include "../../r3bsource/tofd/mapping_tofd_trig.hh"
+
 #include <iostream>
 #include <stdlib.h>
 
@@ -101,14 +103,10 @@ InitStatus R3BTofDCal2HitPar_elorenz::Init()
 	SetHistogramsNull();
 	CreateHistograms();
 
+	tofd_trig_map_setup();
+
 	printf("End of init\n");
 	return kSUCCESS;
-}
-
-void R3BTofDCal2HitPar_elorenz::SetParContainers()
-{
-	fMapPar = dynamic_cast<R3BTofDMappingPar*>(FairRuntimeDb::instance()->getContainer("tofdMappingPar"));
-	R3BLOG_IF(warning, !fMapPar, "Could not get access to tofdMappingPar container");
 }
 
 void R3BTofDCal2HitPar_elorenz::Exec(Option_t* option)
@@ -153,6 +151,18 @@ void R3BTofDCal2HitPar_elorenz::Exec(Option_t* option)
 		vec.push_back(hit);
 	}
 
+	//Built trigger map
+	std::vector<R3BTofdCalData const*> trig_map;
+	for (int i = 0; i < fCalTriggerItems->GetEntries(); ++i)
+	{
+		auto trig = (R3BTofdCalData const*)fCalTriggerItems->At(i);
+		if (trig_map.size() < trig->GetBarId())
+		{
+			trig_map.resize(trig->GetBarId());
+		}
+		trig_map.at(trig->GetBarId() - 1) = trig;
+	}
+	
 	//std::vector<std::tuple<int,int,double>> pspxvect;
 	//for (int ihit = 0; ihit < nHits_pspx; ihit++)
 	//{
@@ -173,19 +183,16 @@ void R3BTofDCal2HitPar_elorenz::Exec(Option_t* option)
 			auto top = top_vec.at(top_i);
 			auto bot = bot_vec.at(bot_i);
 
-			int top_trig_i = 0;
-			int bot_trig_i = 0;
-			if (fMapPar)
-			{
-				top_trig_i = fMapPar->GetTrigMap(top->GetDetectorId(), top->GetBarId(), top->GetSideId());
-				bot_trig_i = fMapPar->GetTrigMap(bot->GetDetectorId(), bot->GetBarId(), bot->GetSideId());
-			}
+			int top_trig_i = g_tofd_trig_map[top->GetDetectorId()-1][top->GetBarId()-1][top->GetSideId()-1];
+			int bot_trig_i = g_tofd_trig_map[bot->GetDetectorId()-1][bot->GetBarId()-1][bot->GetSideId()-1];
+
+			printf("Trig_top: %d, trig_bot: %d\n",g_tofd_trig_map[top->GetDetectorId()-1][top->GetBarId()-1][top->GetSideId()-1],g_tofd_trig_map[bot->GetDetectorId()-1][bot->GetBarId()-1][bot->GetSideId()-1]);
 
 			double top_trig_ns = 0, bot_trig_ns = 0;
-			if (top_trig_i < trig_num && bot_trig_i < trig_num)
+			if (top_trig_i < trig_map.size() && trig_map.at(top_trig_i) && bot_trig_i < trig_map.size() && trig_map.at(bot_trig_i))
 			{
-				auto top_trig = dynamic_cast<R3BTofdCalData*>(fCalTriggerItems->At(top_trig_i));
-				auto bot_trig = dynamic_cast<R3BTofdCalData*>(fCalTriggerItems->At(bot_trig_i));
+				auto top_trig = trig_map.at(top_trig_i);
+				auto bot_trig = trig_map.at(bot_trig_i);
 				top_trig_ns = top_trig->GetTimeLeading_ns();
 				bot_trig_ns = bot_trig->GetTimeLeading_ns();
 			}

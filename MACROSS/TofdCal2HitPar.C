@@ -12,7 +12,7 @@ void TofdCal2HitPar(const int RunId, int nev, int fParameter)
 	TString path4 = "/lustre/land/ajedele/s473/rootfiles/";
 	TString path1 = "/lustre/land/ajedele/s473/rootfiles/TOFD/";
 	TString path2 = "/lustre/land/ajedele/s473/rootfiles/PSPX/";
-	TString path3 = "/u/ajedele/R3BRoot_fork/MACROSS/";
+	TString path3 = "/u/ajedele/R3BRoot_fork_modified/MACROSS/";
 
 	TString filename; TString filename1; TString filename2; TString outputFileName;
 
@@ -134,12 +134,6 @@ void TofdCal2HitPar(const int RunId, int nev, int fParameter)
 	rtdb->setFirstInput(parIo1);
 	
 	//Ascii file
-	FairParAsciiFileIo *parIo2 = new FairParAsciiFileIo();
-	TList *parList2 = new TList();
-	parList2->Add(new TObjString(path3 + "parameter/tofd_mapping_v1.par"));
-	parIo2->open(parList2, "in");
-	rtdb->setSecondInput(parIo2);
-	rtdb->addRun(RunId);
 	rtdb->getContainer("TofdTCalPar");
 	rtdb->setInputVersion(fRunId, (char*)"TofdTCalPar", 1, 1);
 	if (fLos) {
