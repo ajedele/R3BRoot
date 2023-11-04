@@ -951,8 +951,8 @@ void R3BTofDOnlineSpectra::Exec(Option_t* option)
 
                 // Shift the cyclic difference window by half a window-length and move it back,
                 // this way the trigger time will be at 0.
-                auto topc_ns = fTimeStitch->GetTime(topc->GetTimeLeading_ns() - topc_trig_ns);
-                auto botc_ns = fTimeStitch->GetTime(botc->GetTimeLeading_ns() - botc_trig_ns);
+                auto topc_ns = fTimeStitch->GetTime(topc->GetTimeLeading_ns() - topc_trig_ns, "tamex");
+                auto botc_ns = fTimeStitch->GetTime(botc->GetTimeLeading_ns() - botc_trig_ns, "tamex");
 
                 auto dt = topc_ns - botc_ns;
                 // Handle wrap-around.
@@ -985,8 +985,8 @@ void R3BTofDOnlineSpectra::Exec(Option_t* option)
                         continue;
                     }
 
-                    auto topc_tot = fTimeStitch->GetTime(topc->GetTimeTrailing_ns() - topc->GetTimeLeading_ns());
-                    auto botc_tot = fTimeStitch->GetTime(botc->GetTimeTrailing_ns() - botc->GetTimeLeading_ns());
+                    auto topc_tot = fTimeStitch->GetTime(topc->GetTimeTrailing_ns() - topc->GetTimeLeading_ns(), "tamex");
+                    auto botc_tot = fTimeStitch->GetTime(botc->GetTimeTrailing_ns() - botc->GetTimeLeading_ns(), "tamex");
 
                     fh_tofd_TotPm_coinc[iPlane - 1]->Fill(-iBar - 1, botc_tot);
                     fh_tofd_TotPm_coinc[iPlane - 1]->Fill(iBar, topc_tot);
@@ -1025,7 +1025,7 @@ void R3BTofDOnlineSpectra::Exec(Option_t* option)
                         {
                             Double_t tof_plane = 0. / 0.;
                             tof_plane = fTimeStitch->GetTime(time_bar[ipl][ibr - 1][imult1] -
-                                                             time_bar[ipl - 1][ibr - 1][imult2]);
+                                                             time_bar[ipl - 1][ibr - 1][imult2], "tamex");
                             fh_tofd_dt[ipl - 1]->Fill(ibr, tof_plane);
                         }
                     }
@@ -1093,7 +1093,7 @@ void R3BTofDOnlineSpectra::Exec(Option_t* option)
                 {
                     for (Int_t im2 = 0; im2 < iCounts[i - 1]; im2++)
                     {
-                        Double_t tdif = fTimeStitch->GetTime(t[i][im1] - t[i - 1][im2]);
+                        Double_t tdif = fTimeStitch->GetTime(t[i][im1] - t[i - 1][im2], "tamex");
                         fh_tofd_dt_hit[i - 1]->Fill(bar[i][im1], tdif);
                     }
                 }

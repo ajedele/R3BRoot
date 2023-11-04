@@ -262,8 +262,8 @@ void R3BTofDCal2HitPar::Exec(Option_t* option)
 
             // Shift the cyclic difference window by half a window-length and move it back,
             // this way the trigger time will be at 0.
-            auto top_ns = fTimeStitch->GetTime(top->GetTimeLeading_ns() - top_trig_ns);
-            auto bot_ns = fTimeStitch->GetTime(bot->GetTimeLeading_ns() - bot_trig_ns);
+            auto top_ns = fTimeStitch->GetTime(top->GetTimeLeading_ns() - top_trig_ns, "tamex");
+            auto bot_ns = fTimeStitch->GetTime(bot->GetTimeLeading_ns() - bot_trig_ns, "tamex");
             auto dt = top_ns - bot_ns;
             // Handle wrap-around.
             auto dt_mod = fmod(dt + c_range_ns, c_range_ns);
@@ -316,7 +316,9 @@ void R3BTofDCal2HitPar::Exec(Option_t* option)
                     fhTsync[iPlane - 1]->Fill(iBar, THit);
 
                     // Tof with respect LOS detector
-                    auto tof = fTimeStitch->GetTime((top_ns + bot_ns) / 2. - fHeader->GetTStart(), "tamex", "vftx");
+                    auto tofd_tof = fTimeStitch->GetTime((top_ns + bot_ns) / 2., "tamex");
+                    auto los_tof = fTimeStitch->GetTime(fHeader->GetTStart(), "vftx");
+		    auto tof = tofd_tof - los_tof;
                     // std::cout << "top" << top_ns << " bot"<<bot_ns << " start" << header->GetTStart() << std::endl;
                 }
 
@@ -360,9 +362,6 @@ void R3BTofDCal2HitPar::Exec(Option_t* option)
                     // Time of hit
                     auto THit = (top_ns + bot_ns) / 2. - par->GetSync();
                     fhTsync[iPlane - 1]->Fill(iBar, THit);
-
-                    // Tof with respect LOS detector
-                    auto tof = fTimeStitch->GetTime((top_ns + bot_ns) / 2. - fHeader->GetTStart(), "tamex", "vftx");
                 }
                 else if (fTofdQ > 0 && fParameter > 1)
                 {

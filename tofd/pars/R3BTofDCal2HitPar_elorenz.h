@@ -33,7 +33,6 @@ class R3BTofDHitPar;
 class TClonesArray;
 class R3BEventHeader;
 class R3BTofDMappingPar;
-class R3BCoarseTimeStitch;
 class TH1D;
 class TH2D;
 
@@ -176,7 +175,6 @@ class R3BTofDCal2HitPar_elorenz : public FairTask
 		inline void ReadHistoFile(TString file) { fHistoFile = file; }
 
 	private:
-		R3BCoarseTimeStitch* fTimeStitch;
 		/**
 		 * Method for creating histograms.
 		 */
