@@ -14,7 +14,6 @@
 #include "R3BTofDCal2HitPar_elorenz.h"
 #include "R3BEventHeader.h"
 #include "R3BLogger.h"
-#include "R3BCoarseTimeStitch.h"
 #include "R3BTofDHitModulePar.h"
 #include "R3BTofDHitPar.h"
 #include "R3BTofDMappingPar.h"
