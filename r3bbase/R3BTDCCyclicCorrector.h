@@ -11,40 +11,35 @@
  * or submit itself to any jurisdiction.                                      *
  ******************************************************************************/
 
-#pragma once
+#ifndef R3BTDCCyclicCorrector_H
+#define R3BTDCCyclicCorrector_H 1
 
 #include <Rtypes.h>
 #include <TObject.h>
 #include <TString.h>
 
-class R3BCoarseTimeStitch : public TObject
+class R3BTDCCyclicCorrector : public TObject
 {
   public:
     // Default Constructor for sync two tamex channels
-    R3BCoarseTimeStitch();
+    R3BTDCCyclicCorrector(){};
 
-    // Destructor
-    ~R3BCoarseTimeStitch() override = default;
-
-    // Accessors with [[nodiscard]]
-    [[nodiscard]] inline double GetRange1() const { return fRange1; }
-    [[nodiscard]] inline double GetRange2() const { return fRange2; }
-    [[nodiscard]] double GetTime(double, TString const& name1 = "tamex", TString const& name2 = "tamex");
-
-    inline void SetRange1(Float_t range) { fRange1 = range; }
-    inline void SetRange2(Float_t range) { fRange2 = range; }
-
-    inline void SetClockTDC150() { fRangeClockTDC = fRangeClockTDC150; }
+    double GetTAMEXTime(double);
+    double GetVFTXTime(double);
+    double GetTRBTime(double);
+    double GetClockTDCTime(double);
+    double GetClockTDColdTime(double);
+    double GetKilomTime(double);
 
   private:
-    double fRange1;
-    double fRange2;
-    double fRangeTamex;
-    double fRangeVftx;
-    double fRangeTrb;
-    double fRangeClockTDC;
-    double fRangeClockTDC150;
+    double range{};
+    double rangeTamex = 2048 * 1000. / 200.;       // ns
+    double rangeTrb = 2048 * 1000. / 200.;         // ns
+    double rangeVftx = 8192 * 1000. / 200.;        // ns
+    double rangeClockTDC = 4096 * 1000. / 250.;    // ns - should verify with Michael which detector ran on this clock and if this frequency is correct
+    double rangeClockTDC150 = 4096 * 1000. / 150.; // ns
+    double rangeKilom = 4096 * 1000. / 150.;       // ns
 
   public:
-    ClassDefOverride(R3BCoarseTimeStitch, 1)
+    ClassDef(R3BTDCCyclicCorrector, 1)
 };

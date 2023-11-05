@@ -21,6 +21,7 @@
 #include "R3BEventHeader.h"
 #include "R3BLogger.h"
 #include "R3BTCalEngine.h"
+#include "R3BTDCCyclicCorrector.h"
 #include "R3BTofDHitModulePar.h"
 #include "R3BTofDHitPar.h"
 #include "R3BTofDMappingPar.h"
@@ -111,36 +112,41 @@ void R3BTofDCal2Hit::SetParameter()
 
 InitStatus R3BTofDCal2Hit::Init()
 {
-	R3BLOG(info, "");
-	FairRootManager* mgr = FairRootManager::Instance();
-	if (!mgr)
-	{
-	    R3BLOG(fatal, "FairRootManager not found");
-	    return kFATAL;
-	}
-	
-	header = dynamic_cast<R3BEventHeader*>(mgr->GetObject("EventHeader."));
-	R3BLOG_IF(fatal, NULL == header, "EventHeader. not found");
-	
-	fCalItems = dynamic_cast<TClonesArray*>(mgr->GetObject("TofdCal"));
-	R3BLOG_IF(fatal, NULL == fCalItems, "TofdCal not found");
-	
-	fCalTriggerItems = dynamic_cast<TClonesArray*>(mgr->GetObject("TofdTriggerCal"));
-	R3BLOG_IF(fatal, NULL == fCalTriggerItems, "TofdTriggerCal not found");
-	
-	maxevent = mgr->CheckMaxEventNo();
-	
-	// request storage of Hit data in output tree
-	mgr->Register("TofdHit", "TofdHit data", fHitItems, !fOnline);
-	
-	SetParameter();
-	
-	if (fTofdHisto) {CreateHistograms();}
-	
-	// Definition of a time stich object to correlate times coming from different systems
-	fTimeStitch = new R3BCoarseTimeStitch();
-	
-	return kSUCCESS;
+    R3BLOG(info, "");
+    FairRootManager* mgr = FairRootManager::Instance();
+    if (!mgr)
+    {
+        R3BLOG(fatal, "FairRootManager not found");
+        return kFATAL;
+    }
+
+    header = dynamic_cast<R3BEventHeader*>(mgr->GetObject("EventHeader."));
+    R3BLOG_IF(fatal, NULL == header, "EventHeader. not found");
+
+    fCalItems = dynamic_cast<TClonesArray*>(mgr->GetObject("TofdCal"));
+    R3BLOG_IF(fatal, NULL == fCalItems, "TofdCal not found");
+
+    fCalTriggerItems = dynamic_cast<TClonesArray*>(mgr->GetObject("TofdTriggerCal"));
+    R3BLOG_IF(fatal, NULL == fCalTriggerItems, "TofdTriggerCal not found");
+
+    maxevent = mgr->CheckMaxEventNo();
+
+    // request storage of Hit data in output tree
+    mgr->Register("TofdHit", "TofdHit data", fHitItems, !fOnline);
+
+    SetParameter();
+
+    if (fTofdHisto)
+    {
+        for (int i = 1; i <= fNofPlanes; i++)
+            for (int j = 1; j <= N_TOFD_HIT_PADDLE_MAX; j++)
+                CreateHistograms(i, j);
+    }
+
+    // Definition of a time stich object to correlate times coming from different systems
+    fCyclicCorrector = new R3BTDCCyclicCorrector();
+
+    return kSUCCESS;
 }
 
 InitStatus R3BTofDCal2Hit::ReInit()
@@ -152,526 +158,632 @@ InitStatus R3BTofDCal2Hit::ReInit()
 
 void R3BTofDCal2Hit::Exec(Option_t* option)
 {
-	static uint32_t counter = 0;
-	++counter;
-	
-	// test for requested trigger (if possible)
-	if ((fTrigger >= 0) && (header) && (header->GetTrigger() != fTrigger)) {wrongtrigger++; return;}
-	// fTpat = 1-16; fTpat_bit = 0-15
-	int fTpat_bit1 = fTpat1 - 1;
-	int fTpat_bit2 = fTpat2 - 1;
-	int tpatbin;
-	int tpatsum = 0;
-	
-	if (header && fTpat1 >= 0 && fTpat2 >= 0)
-	{
-		for (int i = 0; i < 16; i++)
-		{
-			tpatbin = (header->GetTpat() & (1 << i));
-			if (tpatbin != 0 && (i < fTpat_bit1 || i > fTpat_bit2)) {wrongtpat++; return;}
-			if (tpatbin != 0) {/*fhTpat->Fill(i+1);*/ LOG(debug) << "Accepted Tpat: " << i + 1;}
-			tpatsum += tpatbin;
-		}
-		if (tpatsum < 1)
-		{
-			if (fhNoTpat) fhNoTpat->Fill(counter - lasttpatevent);
-			lasttpatevent = counter;
-			notpat++;
-			LOG(fatal)<<"No Tpat info";
-			return;
-		}
-	}
-	headertpat++;
-	
-	std::vector<std::vector<unsigned int>> multihits(fNofPlanes, std::vector<unsigned int>(fPaddlesPerPlane));
-	for (int i = 0; i < fNofPlanes; i++)
-		for (int j = 0; j < fPaddlesPerPlane; j++)
-			multihits[i][j] = 0;
-	
-	struct hit
-	{
-		double charge;
-		double time;
-		double xpos;
-		double ypos;
-		int plane;
-		int bar;
-		double time_raw;
-		double tof;
-	};
-	
-	std::vector<hit> event;
-	
-	int nHits = fCalItems->GetEntriesFast();
-	LOG(debug) << "Leading and trailing edges in this event: " << nHits;
-	if (nHits == 0) events_wo_tofd_hits++;
-	
-	// Organize cals into bars.
-	struct Entry
-	{
-		std::vector<R3BTofdCalData*> top;
-		std::vector<R3BTofdCalData*> bot;
-	};
-	std::map<size_t, Entry> bar_map;
-	for (int ihit = 0; ihit < nHits; ihit++)
-	{
-		auto* hit = dynamic_cast<R3BTofdCalData*>(fCalItems->At(ihit));
-		size_t idx = (hit->GetDetectorId() - 1) * fPaddlesPerPlane + (hit->GetBarId() - 1);
-		auto ret = bar_map.insert(std::pair<size_t, Entry>(idx, Entry()));
-		auto& vec = 1 == hit->GetSideId() ? ret.first->second.bot : ret.first->second.top;
-		vec.push_back(hit);
-		events_in_cal_level++;
-	}
-	
-	// Build trigger map.
-	std::vector<R3BTofdCalData const*> trig_map;
-	for (int i = 0; i < fCalTriggerItems->GetEntriesFast(); ++i)
-	{
-		auto trig = dynamic_cast<R3BTofdCalData const*>(fCalTriggerItems->At(i));
-		if (trig_map.size() < trig->GetBarId())  {trig_map.resize(trig->GetBarId());}
-		trig_map.at(trig->GetBarId() - 1) = trig;
-	}
-	
-	// Find coincident PMT hits.
-	for (auto it = bar_map.begin(); bar_map.end() != it; ++it)
-	{
-		auto const& top_vec = it->second.top;
-		auto const& bot_vec = it->second.bot;
-		size_t top_i = 0;
-		size_t bot_i = 0;
-		for (; top_i < top_vec.size() && bot_i < bot_vec.size();)
-		{
-			auto top = top_vec.at(top_i);
-			auto bot = bot_vec.at(bot_i);
-			
-			int top_trig_i = 0;
-			int bot_trig_i = 0;
-			if (fMapPar)
-			{
-				top_trig_i = fMapPar->GetTrigMap(top->GetDetectorId(), top->GetBarId(), top->GetSideId());
-				bot_trig_i = fMapPar->GetTrigMap(bot->GetDetectorId(), bot->GetBarId(), bot->GetSideId());
-			}
-			
-			double top_trig_ns = 0, bot_trig_ns = 0;
-			if (top_trig_i < trig_map.size() && trig_map.at(top_trig_i) && bot_trig_i < trig_map.size() && trig_map.at(bot_trig_i))
-			{
-				auto top_trig = trig_map.at(top_trig_i);
-				auto bot_trig = trig_map.at(bot_trig_i);
-				top_trig_ns = top_trig->GetTimeLeading_ns();
-				bot_trig_ns = bot_trig->GetTimeLeading_ns();
-			}
-			
-			// Shift the cyclic difference window by half a window-length and move it back,
-			// this way the trigger time will be at 0.
-			auto top_ns = fmod(top->GetTimeLeading_ns() - top_trig_ns + c_range_ns + c_range_ns / 2, c_range_ns) - c_range_ns / 2;
-			auto bot_ns = fmod(bot->GetTimeLeading_ns() - bot_trig_ns + c_range_ns + c_range_ns / 2, c_range_ns) - c_range_ns / 2;
-			
-			auto dt = top_ns - bot_ns;
-			// Handle wrap-around.
-			if (std::abs(dt) < c_bar_coincidence_ns)
-			{
-				inbarcoincidence++;
-				// Hit!
-				int iPlane = top->GetDetectorId(); // 1..n
-				int iBar = top->GetBarId();        // 1..n
-				if (iPlane > fNofPlanes)             // this also errors for iDetector==0
-				{
-					R3BLOG(error, "More detectors than expected! Det: " << iPlane << " allowed are 1.." << fNofPlanes);
-					continue;
-				}
-				if (iBar > fPaddlesPerPlane) // same here
-				{
-					R3BLOG(error, "More bars then expected! Det: " << iBar << " allowed are 1.." << fPaddlesPerPlane);
-					continue;
-				}
-				
-				auto top_tot = fmod(top->GetTimeTrailing_ns() - top->GetTimeLeading_ns() + c_range_ns, c_range_ns);
-				auto bot_tot = fmod(bot->GetTimeTrailing_ns() - bot->GetTimeLeading_ns() + c_range_ns, c_range_ns);
-				// register multi hits
-				multihits[iPlane-1][iBar-1] += 1;
-				
-				auto THit_raw = (bot->GetTimeLeading_ns() + top->GetTimeLeading_ns()) / 2.; // needed for TOF for ROLUs
-				
-				auto par = fHitPar->GetModuleParAt(iPlane, iBar);
-				if (!par)
-				{
-					R3BLOG(error, "Hit par not found, Plane: " << top->GetDetectorId() << ", Bar: " << top->GetBarId());
-					continue;
-				}
-				
-				// walk corrections
-				if (par->GetPar1Walk() == 0. || par->GetPar2Walk() == 0. || par->GetPar3Walk() == 0. ||
-				    par->GetPar4Walk() == 0. || par->GetPar5Walk() == 0.)
-				{
-					R3BLOG(debug, "TofD walk correction not found");
-				}
-				else
-				{
-					auto bot_ns_walk = bot_ns - walk(bot_tot,
-					                                 par->GetPar1Walk(),
-					                                 par->GetPar2Walk(),
-					                                 par->GetPar3Walk(),
-					                                 par->GetPar4Walk(),
-					                                 par->GetPar5Walk());
-					auto top_ns_walk = top_ns - walk(top_tot,
-					                                 par->GetPar1Walk(),
-					                                 par->GetPar2Walk(),
-					                                 par->GetPar3Walk(),
-					                                 par->GetPar4Walk(),
-					                                 par->GetPar5Walk());
-				}
-				
-				// calculate tdiff
-				auto tdiff = ((bot_ns + par->GetOffset1()) - (top_ns + par->GetOffset2()));
-				
-				// calculate time of hit
-				double THit = (bot_ns + top_ns) / 2. - par->GetSync();
-				if (std::isnan(THit))
-				{
-					R3BLOG(fatal, "TofD THit not found");
-				}
-				
-				// calculate y-position
-				auto pos = ((bot_ns + par->GetOffset1()) - (top_ns + par->GetOffset2())) * par->GetVeff();
-				
-				// calculate y-position from ToT
-				auto posToT = par->GetLambda() * log((top_tot * par->GetToTOffset2()) / (bot_tot * par->GetToTOffset1()));
-				
-				if (fTofdTotPos) {pos = posToT;}
-				
-				float paddle_width = 2.700;
-				float air_gap_paddles = 0.04;
-				float air_gap_layer = 5.;
-				float detector_width = fPaddlesPerPlane * paddle_width + (fPaddlesPerPlane - 1) * air_gap_paddles + paddle_width;
-				double xp = -1000.;
-				// calculate x-position
-				if (iPlane == 1 || iPlane == 3)
-				{
-					xp = -detector_width / 2 + (paddle_width + air_gap_paddles) / 2 +
-					     (iBar - 1) * (paddle_width + air_gap_paddles) +
-					     gRandom->Uniform(-paddle_width / 2., paddle_width / 2.);
-				}
-				if (iPlane == 2 || iPlane == 4)
-				{
-					xp = -detector_width / 2 + (paddle_width + air_gap_paddles) +
-					     (iBar - 1) * (paddle_width + air_gap_paddles) +
-					     gRandom->Uniform(-paddle_width / 2., paddle_width / 2.);
-				}
-				
-				double para[4];
-				double qb = 0., q1 = 0., q2 = 0.;
-				if (fTofdQ > 0)
-				{
-					if (fTofdTotPos)
-					{
-						// via pol3
-						para[0] = par->GetPola();
-						para[1] = par->GetPolb();
-						para[2] = par->GetPolc();
-						para[3] = par->GetPold();
-						qb = TMath::Sqrt(top_tot * bot_tot) / (para[0] + para[1] * pos + para[2] * pow(pos, 2) + para[3] * pow(pos, 3));
-						qb = qb * fTofdQ;
-					}
-					else
-					{
-						// via double exponential:
-						para[0] = par->GetPar1a();
-						para[1] = par->GetPar1b();
-						para[2] = par->GetPar1c();
-						para[3] = par->GetPar1d();
-						q1 = bot_tot / (para[0] * (exp(-para[1] * (pos + 100.)) + exp(-para[2] * (pos + 100.))) + para[3]);
-						
-						para[0] = par->GetPar2a();
-						para[1] = par->GetPar2b();
-						para[2] = par->GetPar2c();
-						para[3] = par->GetPar2d();
-						q2 = top_tot / (para[0] * (exp(-para[1] * (pos + 100.)) + exp(-para[2] * (pos + 100.))) + para[3]);
-						
-						q1 = q1 * fTofdQ;
-						q2 = q2 * fTofdQ;
-						qb = (q1 + q2) / 2.;
-					}
-				}
-				else
-				{
-					qb = TMath::Sqrt(top_tot * bot_tot);
-				}
-				
-				double parz[3];
-				parz[0] = par->GetPar1za();
-				parz[1] = par->GetPar1zb();
-				parz[2] = par->GetPar1zc();
-				
-				if (parz[0] > 0 && parz[2] > 0)
-					LOG(debug) << "Charges in this event " << parz[0] * TMath::Power(qb, parz[2]) + parz[1] << " plane "
-				               << iPlane << " ibar " << iBar;
-				else  LOG(debug) << "Charges in this event " << qb << " plane " << iPlane << " ibar " << iBar;
-				
-				if (iPlane == 1 || iPlane == 3)
-					LOG(debug) << "x in this event " << -detector_width / 2 + (paddle_width + air_gap_paddles) / 2 +
-				                      (iBar - 1) * (paddle_width + air_gap_paddles) - 0.04 << " plane " << iPlane << " ibar " << iBar;
-				if (iPlane == 2 || iPlane == 4)
-					LOG(debug) << "x in this event " << -detector_width / 2 + (paddle_width + air_gap_paddles) +
-				                      (iBar - 1) * (paddle_width + air_gap_paddles) - 0.04 << " plane " << iPlane << " ibar " << iBar;
-				LOG(debug) << "y in this event " << pos << " plane " << iPlane << " ibar " << iBar << "\n";
-				
-				// Tof with respect LOS detector
-				auto tof_corr = (fmod((bot_ns + top_ns) / 2. + c_range_ns + c_range_ns/2., c_range_ns) - c_range_ns/2) - header->GetTStart();
-				
-				if (parz[0]>0 || parz[1]>0) event.push_back({parz[0] + parz[1] * qb + parz[2] * qb * qb, THit, xp, pos, iPlane, iBar, THit_raw, tof_corr});
-				
-				if (fTofdHisto)
-				{
-				    // fill control histograms
-				    fhTsync[iPlane - 1]->Fill(iBar, THit);
-				    fhTdiff[iPlane - 1]->Fill(iBar, tdiff);
-				    fhQvsPos[iPlane - 1][iBar - 1]->Fill(pos, parz[0] * TMath::Power(qb, parz[2]) + parz[1]);
-				    // fhQvsTHit[iPlane - 1][iBar - 1]->Fill(qb, THit);
-				}
-				
-				for (int e = 0; e < event.size(); e++)
-				{
-				    LOG(debug) << event[e].charge << "\t" << event[e].time << "\t" << event[e].xpos << "\t"
-				               << event[e].ypos << "\t" << event[e].plane << "\t" << event[e].bar;
-				}
-				
-				++top_i;
-				++bot_i;
-			}
-			else if (dt < 0 && dt > -c_range_ns / 2)
-			{
-			    ++top_i;
-			    LOG(debug) << "Not in bar coincidence increase top counter";
-			}
-			else
-			{
-			    ++bot_i;
-			    LOG(debug) << "Not in bar coincidence increase bot counter";
-			}
-		}
-	}
-	
-	// Now all hits in this event are analyzed
-	
-	LOG(debug) << "Hits in this event: " << event.size();
-	bool tArrU[event.size() + 1];
-	for (int ii = 0; ii < (event.size() + 1); ii++)
-	    tArrU[ii] = kFALSE;
-	
-	for (int ii = 0; ii < fNofPlanes; ii++)
-	{
-	    for (int jj = 0; jj < fPaddlesPerPlane; jj++)
-	    {
-	        if (multihits[ii][jj] > 1)
-	        {
-	            bars_with_multihit++;
-	            multihit += multihits[ii][jj] - 1;
-	        }
-	    }
-	}
-	
-	std::sort(event.begin(), event.end(), [](hit const& a, hit const& b) { return a.time < b.time; });
-	// Now we have all hits in this event time sorted
-	
-	if (fTofdHisto)
-	{
-	    LOG(debug) << "Charge Time xpos ypos plane bar";
-	    for (int hit = 0; hit < event.size(); hit++)
-	    {
-	        LOG(debug) << event[hit].charge << " " << event[hit].time << " " << event[hit].xpos << " "
-	                   << event[hit].ypos << " " << event[hit].plane << " " << event[hit].bar;
-	        // if (event[hit].plane == 2 && (event[hit].bar < 21 || event[hit].bar > 24)) fhTvsQ[event[hit].plane -
-	        // 1]->Fill(event[hit].time-event[0].time,event[hit].charge);
-	        if (event[hit].plane == 2 && (event[hit].bar == 18))
-	            fhTvsQ[event[hit].plane - 1]->Fill(event[hit].time - event[0].time, event[hit].charge);
-	    }
-	}
-	
-	// Now we can analyze the hits in this event
-	
-	// select events with feasible times
-	double hit_coinc = 20.; // coincidence window for hits in one event in ns. physics says max 250 ps
-	double time0;
-	for (int ihit = 0; ihit < event.size();)
-	{ // loop over all hits in this event
-	    LOG(debug) << "Set new coincidence window: " << event[ihit].plane << " " << event[ihit].bar << " "
-	               << event[ihit].time << " " << event[ihit].charge;
-	    time0 = event[ihit].time;              // time of first hit in coincidence window
-	    double charge0 = event[ihit].charge; // charge of first hit in coincidence window
-	    int plane0 = event[ihit].plane;      // plane of first hit in coincidence window
-	    std::vector<double> goodcharge;
-	    std::vector<double> goodplane;
-	    std::vector<double> goodbar;
-	    struct goodhit
-	    {
-	        double goodq;
-	        double goodp;
-	        double goodb;
-	    };
-	    struct by_charge
-	    {
-	        bool operator()(goodhit const& a, goodhit const& b) const noexcept { return a.goodq < b.goodq; }
-	    };
-	    std::vector<goodhit> goodevents;
-	
-	    while (event[ihit].time < time0 + hit_coinc)
-	    { // check if in coincidence window
-	        if (fTofdHisto)
-	        {
-	            if (event[ihit].plane == plane0 && charge0 != event[ihit].charge)
-	            {
-	                fhQ0Qt[event[ihit].plane - 1]->Fill(charge0, event[ihit].charge);
-	            }
-	        }
-	
-	        if ((event[ihit].charge > 5.5 && event[ihit].charge < 6.5) ||
-	            (event[ihit].charge > 1.5 && event[ihit].charge < 2.5))
-	        {
-	            goodcharge.push_back(event[ihit].charge);
-	            goodplane.push_back(event[ihit].plane);
-	            goodbar.push_back(event[ihit].bar);
-	        }
-	
-	        LOG(debug) << "Hit in coincidence window: " << event[ihit].plane << " " << event[ihit].bar << " "
-	                   << event[ihit].time << " " << event[ihit].charge;
-	
-	        ihit++;
-	        if (ihit >= event.size())
-	            break;
-	    }
-	    if (goodcharge.size() > 3)
-	    {
-	        if (goodcharge.size() == 4)
-	        {
-	            if (std::accumulate(goodcharge.begin(), goodcharge.end(), 0.0) > 14. &&
-	                std::accumulate(goodcharge.begin(), goodcharge.end(), 0.0) < 18.)
-	            {
-	                if (std::accumulate(goodplane.begin(), goodplane.end(), 0) == 6.)
-	                {
-	                    LOG(debug) << "Found good pair 2 times in all planes";
-	                    for (int g = 0; g < goodcharge.size(); g++)
-	                    {
-	                        LOG(debug) << goodcharge.at(g);
-	                        LOG(debug) << goodplane.at(g);
-	                        LOG(debug) << goodbar.at(g);
-	                        goodevents.push_back({ goodcharge.at(g), goodplane.at(g), goodbar.at(g) });
-	                    }
-	                    goodpair++;
-	                    goodpair4++;
-	                }
-	                else
-	                {
-	                    goodpair3++;
-	                }
-	            }
-	        }
-	        else if (std::accumulate(goodcharge.begin(), goodcharge.end(), 0.0) > 14.)
-	            goodpair6++;
-	    }
-	    if (goodcharge.size() == 3)
-	    {
-	        if (std::accumulate(goodcharge.begin(), goodcharge.end(), 0.0) > 8.5 &&
-	            std::accumulate(goodcharge.begin(), goodcharge.end(), 0.0) < 15.5)
-	        {
-	            if (std::accumulate(goodplane.begin(), goodplane.end(), 0) == 4 ||
-	                std::accumulate(goodplane.begin(), goodplane.end(), 0) == 5)
-	            {
-	                LOG(debug) << "Found good pair at least once in all planes";
-	                for (int g = 0; g < goodcharge.size(); g++)
-	                {
-	                    LOG(debug) << goodcharge.at(g);
-	                }
-	                goodpair++;
-	                goodpair5++;
-	            }
-	            else
-	            {
-	                goodpair7++;
-	            }
-	        }
-	    }
-	    if (goodcharge.size() == 2)
-	    {
-	        if (std::accumulate(goodcharge.begin(), goodcharge.end(), 0.0) > 7. &&
-	            std::accumulate(goodcharge.begin(), goodcharge.end(), 0.0) < 9.)
-	        {
-	            if (std::accumulate(goodplane.begin(), goodplane.end(), 0) == 2. ||
-	                std::accumulate(goodplane.begin(), goodplane.end(), 0) == 4.)
-	            {
-	                LOG(debug) << "Found good pair in one plane";
-	                for (int g = 0; g < goodcharge.size(); g++)
-	                {
-	                    LOG(debug) << goodcharge.at(g);
-	                }
-	                goodpair++;
-	                goodpair1++;
-	            }
-	            if (std::accumulate(goodplane.begin(), goodplane.end(), 0) == 3.)
-	            {
-	                LOG(debug) << "Found good pair in different planes";
-	                for (int g = 0; g < goodcharge.size(); g++)
-	                {
-	                    LOG(debug) << goodcharge.at(g);
-	                }
-	                goodpair++;
-	                goodpair2++;
-	            }
-	        }
-	    }
-	    std::sort(
-	        goodevents.begin(), goodevents.end(), [](goodhit const& a, goodhit const& b) { return a.goodq < b.goodq; });
-	    for (int g = 0; g < goodevents.size(); g++)
-	    {
-	        LOG(debug) << goodevents[g].goodq;
-	        LOG(debug) << goodevents[g].goodp;
-	        LOG(debug) << goodevents[g].goodb;
-	    }
-	}
-	
-	if (fTofdHisto)
-	{
-	    size_t ihit = 0;
-	    for (; ihit < event.size();)
-	    {                                                                          // loop over all hits
-	        fhQ[event[ihit].plane - 1]->Fill(event[ihit].bar, event[ihit].charge); // charge per plane
-	        fhQvsEvent[event[ihit].plane - 1]->Fill(fnEvents, event[ihit].charge); // charge vs event #
-	        fhxy[event[ihit].plane - 1]->Fill(event[ihit].bar, event[ihit].ypos);  // xy of plane
-	        ihit++;
-	    }
-	}
-	
-	// store events
-	for (int hit = 0; hit < event.size(); hit++)
-	{ // loop over hits
-	    if (tArrU[hit] == false)
-	    {
-	        eventstore++;
-	        tArrU[hit] = true;
-	        // store single hits
-	        singlehit++;
-	        new ((*fHitItems)[fHitItems->GetEntriesFast()]) R3BTofdHitData(event[hit].time,
-	                                                                       event[hit].xpos,
-	                                                                       event[hit].ypos,
-	                                                                       event[hit].charge,
-	                                                                       -1.,
-	                                                                       event[hit].charge,
-	                                                                       event[hit].plane,
-	                                                                       event[hit].bar,
-	                                                                       event[hit].time_raw,
-	                                                                       event[hit].tof);
-	    }
-	}
-	
-	LOG(debug) << "Used up hits in this event:";
-	for (int a = 0; a < event.size(); a++)
-	{
-	    LOG(debug) << "Event " << a << " " << tArrU[a] << " ";
-	    if (tArrU[a] != true)
-	        LOG(fatal) << "Not all events analyzed!";
-	}
-	
-	LOG(debug) << "------------------------------------------------------\n";
-	fnEvents++;
+    static uint32_t counter = 0;
+    ++counter;
+
+    // test for requested trigger (if possible)
+    if ((fTrigger >= 0) && (header) && (header->GetTrigger() != fTrigger))
+    {
+        wrongtrigger++;
+        return;
+    }
+    // fTpat = 1-16; fTpat_bit = 0-15
+    int fTpat_bit1 = fTpat1 - 1;
+    int fTpat_bit2 = fTpat2 - 1;
+    int tpatbin;
+    int tpatsum = 0;
+
+    if (header && fTpat1 >= 0 && fTpat2 >= 0)
+    {
+        for (int i = 0; i < 16; i++)
+        {
+            tpatbin = (header->GetTpat() & (1 << i));
+            // LOG(debug)<<"tpatbin "tpatbin;
+            if (tpatbin != 0 && (i < fTpat_bit1 || i > fTpat_bit2))
+            {
+                wrongtpat++;
+                return;
+            }
+            if (tpatbin != 0)
+            {
+                //  fhTpat->Fill(i+1);
+                LOG(debug) << "Accepted Tpat: " << i + 1;
+            }
+            tpatsum += tpatbin;
+        }
+        if (tpatsum < 1)
+        {
+            if (fhNoTpat)
+                fhNoTpat->Fill(counter - lasttpatevent);
+
+            lasttpatevent = counter;
+            notpat++;
+            // LOG(fatal)<<"No Tpat info";
+            return;
+        }
+    }
+
+    headertpat++;
+    double timeP0 = 0.;
+    double randx;
+
+    Uint vmultihits[N_PLANE_MAX + 1][N_TOFD_HIT_PADDLE_MAX + 1];
+    for (int i = 0; i <= fNofPlanes; i++)
+    {
+        for (int j = 0; j <= N_TOFD_HIT_PADDLE_MAX; j++)
+        {
+            vmultihits[i][j] = 0;
+        }
+    }
+    struct hit
+    {
+        double charge;
+        double time;
+        double xpos;
+        double ypos;
+        int plane;
+        int bar;
+        double time_raw;
+        double tof;
+    };
+
+    //    std::cout<<"new event!*************************************\n";
+
+    std::vector<hit> event;
+
+    int nHits = fCalItems->GetEntriesFast();
+    LOG(debug) << "Leading and trailing edges in this event: " << nHits;
+    if (nHits == 0)
+        events_wo_tofd_hits++;
+
+    // Organize cals into bars.
+    struct Entry
+    {
+        std::vector<R3BTofdCalData*> top;
+        std::vector<R3BTofdCalData*> bot;
+    };
+    std::map<size_t, Entry> bar_map;
+    // puts("Event");
+    for (int ihit = 0; ihit < nHits; ihit++)
+    {
+        auto* hit = dynamic_cast<R3BTofdCalData*>(fCalItems->At(ihit));
+        size_t idx = (hit->GetDetectorId() - 1) * fPaddlesPerPlane + (hit->GetBarId() - 1);
+
+        // std::cout << "Hits: " << hit->GetDetectorId() << ' ' << hit->GetBarId() << ' ' << hit->GetSideId() << '  '
+        //          << hit->GetTimeLeading_ns() << ' ' << hit->GetTimeTrailing_ns() << ' '
+        //          << hit->GetTimeTrailing_ns() - hit->GetTimeLeading_ns() << '\n';
+
+        auto ret = bar_map.insert(std::pair<size_t, Entry>(idx, Entry()));
+        auto& vec = 1 == hit->GetSideId() ? ret.first->second.bot : ret.first->second.top;
+        vec.push_back(hit);
+        events_in_cal_level++;
+    }
+
+    // Build trigger map.
+    std::vector<R3BTofdCalData const*> trig_map;
+    for (int i = 0; i < fCalTriggerItems->GetEntriesFast(); ++i)
+    {
+        auto trig = dynamic_cast<R3BTofdCalData const*>(fCalTriggerItems->At(i));
+        if (trig_map.size() < trig->GetBarId())
+        {
+            trig_map.resize(trig->GetBarId());
+        }
+        trig_map.at(trig->GetBarId() - 1) = trig;
+    }
+
+    bool s_was_trig_missing = false;
+    // Find coincident PMT hits.
+    // std::cout << "Print:\n";
+    for (auto it = bar_map.begin(); bar_map.end() != it; ++it)
+    {
+        //    reset:
+        // for (auto it2 = it->second.top.begin(); it->second.top.end() != it2; ++it2) {
+        // std::cout << "Top: " << (*it2)->GetDetectorId() << ' ' << (*it2)->GetBarId() << ' ' <<
+        // (*it2)->GetTimeLeading_ns() << '\n';
+        // }
+        // for (auto it2 = it->second.bot.begin(); it->second.bot.end() != it2; ++it2) {
+        // std::cout << "Bot: " << (*it2)->GetDetectorId() << ' ' << (*it2)->GetBarId() << ' ' <<
+        // (*it2)->GetTimeLeading_ns() << '\n';
+        // }
+        auto const& top_vec = it->second.top;
+        auto const& bot_vec = it->second.bot;
+        size_t top_i = 0;
+        size_t bot_i = 0;
+        for (; top_i < top_vec.size() && bot_i < bot_vec.size();)
+        {
+            auto top = top_vec.at(top_i);
+            auto bot = bot_vec.at(bot_i);
+
+            int top_trig_i = 0;
+            int bot_trig_i = 0;
+            if (fMapPar)
+            {
+                top_trig_i = fMapPar->GetTrigMap(top->GetDetectorId(), top->GetBarId(), top->GetSideId());
+                bot_trig_i = fMapPar->GetTrigMap(bot->GetDetectorId(), bot->GetBarId(), bot->GetSideId());
+            }
+
+            double top_trig_ns = 0, bot_trig_ns = 0;
+            if (top_trig_i < trig_map.size() && trig_map.at(top_trig_i) && bot_trig_i < trig_map.size() &&
+                trig_map.at(bot_trig_i))
+            {
+                auto top_trig = trig_map.at(top_trig_i);
+                auto bot_trig = trig_map.at(bot_trig_i);
+                top_trig_ns = top_trig->GetTimeLeading_ns();
+                bot_trig_ns = bot_trig->GetTimeLeading_ns();
+
+                ++n1;
+            }
+            else
+            {
+                if (!s_was_trig_missing)
+                {
+                    R3BLOG(error, "Missing trigger information!");
+                    R3BLOG(error, "Top: " << top->GetDetectorId() << ' ' << top->GetSideId() << ' ' << top->GetBarId());
+                    R3BLOG(error, "Bot: " << bot->GetDetectorId() << ' ' << bot->GetSideId() << ' ' << bot->GetBarId());
+                    s_was_trig_missing = true;
+                }
+                ++n2;
+            }
+
+            // Shift the cyclic difference window by half a window-length and move it back,
+            // this way the trigger time will be at 0.
+            auto top_ns = fCyclicCorrector->GetTAMEXTime(top->GetTimeLeading_ns() - top_trig_ns);
+            auto bot_ns = fCyclicCorrector->GetTAMEXTime(bot->GetTimeLeading_ns() - bot_trig_ns);
+
+            auto dt = top_ns - bot_ns;
+            // Handle wrap-around.
+            auto dt_mod = fmod(dt + c_range_ns, c_range_ns);
+            if (dt < 0)
+            {
+                // We're only interested in the short time-differences, so we
+                // want to move the upper part of the coarse counter range close
+                // to the lower range, i.e. we cut the middle of the range and
+                // glue zero and the largest values together.
+                dt_mod -= c_range_ns;
+            }
+            // std::cout << top_i << ' ' << bot_i << ": " << top_ns << ' ' << bot_ns << " = " << dt << ' ' <<
+            // std::abs(dt_mod) << '\n';
+            if (std::abs(dt_mod) < c_bar_coincidence_ns)
+            {
+                inbarcoincidence++;
+                // Hit!
+                int iPlane = top->GetDetectorId(); // 1..n
+                int iBar = top->GetBarId();        // 1..n
+                if (iPlane > fNofPlanes)             // this also errors for iDetector==0
+                {
+                    R3BLOG(error, "More detectors than expected! Det: " << iPlane << " allowed are 1.." << fNofPlanes);
+                    continue;
+                }
+                if (iBar > fPaddlesPerPlane) // same here
+                {
+                    R3BLOG(error, "More bars then expected! Det: " << iBar << " allowed are 1.." << fPaddlesPerPlane);
+                    continue;
+                }
+
+                auto top_tot = fmod(top->GetTimeTrailing_ns() - top->GetTimeLeading_ns() + c_range_ns, c_range_ns);
+                auto bot_tot = fmod(bot->GetTimeTrailing_ns() - bot->GetTimeLeading_ns() + c_range_ns, c_range_ns);
+
+                auto THit_raw = (bot->GetTimeLeading_ns() + top->GetTimeLeading_ns()) / 2.; // needed for TOF for ROLUs
+
+                // std::cout<<"ToT: "<<top_tot << " "<<bot_tot<<"\n";
+
+                // register multi hits
+                vmultihits[iPlane][iBar] += 1;
+
+                auto par = fHitPar->GetModuleParAt(iPlane, iBar);
+                if (!par)
+                {
+                    R3BLOG(error, "Hit par not found, Plane: " << top->GetDetectorId() << ", Bar: " << top->GetBarId());
+                    continue;
+                }
+
+                // walk corrections
+                if (par->GetPar1Walk() == 0. || par->GetPar2Walk() == 0. || par->GetPar3Walk() == 0. ||
+                    par->GetPar4Walk() == 0. || par->GetPar5Walk() == 0.)
+                {
+                    R3BLOG(debug, "TofD walk correction not found");
+                }
+                else
+                {
+                    auto bot_ns_walk = bot_ns - walk(bot_tot,
+                                                     par->GetPar1Walk(),
+                                                     par->GetPar2Walk(),
+                                                     par->GetPar3Walk(),
+                                                     par->GetPar4Walk(),
+                                                     par->GetPar5Walk());
+                    auto top_ns_walk = top_ns - walk(top_tot,
+                                                     par->GetPar1Walk(),
+                                                     par->GetPar2Walk(),
+                                                     par->GetPar3Walk(),
+                                                     par->GetPar4Walk(),
+                                                     par->GetPar5Walk());
+                }
+
+                // calculate tdiff
+                auto tdiff = ((bot_ns + par->GetOffset1()) - (top_ns + par->GetOffset2()));
+
+                // calculate time of hit
+                double THit = (bot_ns + top_ns) / 2. - par->GetSync();
+                if (std::isnan(THit))
+                {
+                    R3BLOG(fatal, "TofD THit not found");
+                }
+                if (timeP0 == 0.)
+                    timeP0 = THit;
+
+                // calculate y-position
+                auto pos = ((bot_ns + par->GetOffset1()) - (top_ns + par->GetOffset2())) * par->GetVeff();
+
+                // calculate y-position from ToT
+                auto posToT =
+                    par->GetLambda() * log((top_tot * par->GetToTOffset2()) / (bot_tot * par->GetToTOffset1()));
+
+                if (fTofdTotPos)
+                {
+                    pos = posToT;
+                }
+
+                Float_t paddle_width = 2.700;
+                Float_t air_gap_paddles = 0.04;
+                Float_t air_gap_layer = 5.;
+                Float_t detector_width =
+                    fPaddlesPerPlane * paddle_width + (fPaddlesPerPlane - 1) * air_gap_paddles + paddle_width;
+                double xp = -1000.;
+                // calculate x-position
+                if (iPlane == 1 || iPlane == 3)
+                {
+                    xp = -detector_width / 2 + (paddle_width + air_gap_paddles) / 2 +
+                         (iBar - 1) * (paddle_width + air_gap_paddles) +
+                         gRandom->Uniform(-paddle_width / 2., paddle_width / 2.);
+                }
+                if (iPlane == 2 || iPlane == 4)
+                {
+                    xp = -detector_width / 2 + (paddle_width + air_gap_paddles) +
+                         (iBar - 1) * (paddle_width + air_gap_paddles) +
+                         gRandom->Uniform(-paddle_width / 2., paddle_width / 2.);
+                }
+
+                double para[4];
+                double qb = 0.;
+                if (fTofdQ > 0)
+                {
+                    if (fTofdTotPos)
+                    {
+                        // via pol3
+                        para[0] = par->GetPola();
+                        para[1] = par->GetPolb();
+                        para[2] = par->GetPolc();
+                        para[3] = par->GetPold();
+                        qb = TMath::Sqrt(top_tot * bot_tot) /
+                             (para[0] + para[1] * pos + para[2] * pow(pos, 2) + para[3] * pow(pos, 3));
+                        qb = qb * fTofdQ;
+                    }
+                    else
+                    {
+                        // via double exponential:
+                        para[0] = par->GetPar1a();
+                        para[1] = par->GetPar1b();
+                        para[2] = par->GetPar1c();
+                        para[3] = par->GetPar1d();
+                        auto q1 = bot_tot /
+                                  (para[0] * (exp(-para[1] * (pos + 100.)) + exp(-para[2] * (pos + 100.))) + para[3]);
+                        para[0] = par->GetPar2a();
+                        para[1] = par->GetPar2b();
+                        para[2] = par->GetPar2c();
+                        para[3] = par->GetPar2d();
+                        auto q2 = top_tot /
+                                  (para[0] * (exp(-para[1] * (pos + 100.)) + exp(-para[2] * (pos + 100.))) + para[3]);
+                        q1 = q1 * fTofdQ;
+                        q2 = q2 * fTofdQ;
+                        qb = (q1 + q2) / 2.;
+                    }
+                }
+                else
+                {
+                    qb = TMath::Sqrt(top_tot * bot_tot);
+                }
+
+                double parz[3];
+                parz[0] = par->GetPar1za();
+                parz[1] = par->GetPar1zb();
+                parz[2] = par->GetPar1zc();
+
+                if (parz[0] > 0 && parz[2] > 0)
+                    LOG(debug) << "Charges in this event " << parz[0] * TMath::Power(qb, parz[2]) + parz[1] << " plane "
+                               << iPlane << " ibar " << iBar;
+                else
+                    LOG(debug) << "Charges in this event " << qb << " plane " << iPlane << " ibar " << iBar;
+                LOG(debug) << "Times in this event " << THit << " plane " << iPlane << " ibar " << iBar;
+                if (iPlane == 1 || iPlane == 3)
+                    LOG(debug) << "x in this event "
+                               << -detector_width / 2 + (paddle_width + air_gap_paddles) / 2 +
+                                      (iBar - 1) * (paddle_width + air_gap_paddles) - 0.04
+                               << " plane " << iPlane << " ibar " << iBar;
+                if (iPlane == 2 || iPlane == 4)
+                    LOG(debug) << "x in this event "
+                               << -detector_width / 2 + (paddle_width + air_gap_paddles) +
+                                      (iBar - 1) * (paddle_width + air_gap_paddles) - 0.04
+                               << " plane " << iPlane << " ibar " << iBar;
+                LOG(debug) << "y in this event " << pos << " plane " << iPlane << " ibar " << iBar << "\n";
+
+                // Tof with respect LOS detector
+                auto tof = fCyclicCorrector->GetTAMEXTime((bot_ns + top_ns) / 2. - header->GetTStart());
+                // auto tof_corr = par->GetTofSyncOffset() + par->GetTofSyncSlope() * tof;
+                auto tof_corr = tof - par->GetTofSyncOffset();
+
+                // if (parz[1] > 0)
+                // {
+                event.push_back(
+                    { parz[0] + parz[1] * qb + parz[2] * qb * qb, THit, xp, pos, iPlane, iBar, THit_raw, tof_corr });
+                // }
+
+                /* if (parz[0] > 0 && parz[2] > 0)
+                 {
+                     event.push_back(
+                         { parz[0] * TMath::Power(qb, parz[2]) + parz[1], THit, xp, pos, iPlane, iBar, THit_raw, tof });
+                 }
+                 else
+                 {
+                     parz[0] = 1.;
+                     parz[1] = 0.;
+                     parz[2] = 1.;
+                     event.push_back({ qb, THit, xp, pos, iPlane, iBar, THit_raw, tof });
+                 }*/
+
+                if (fTofdHisto)
+                {
+                    // fill control histograms
+                    fhTsync[iPlane - 1]->Fill(iBar, THit);
+                    fhTdiff[iPlane - 1]->Fill(iBar, tdiff);
+                    fhQvsPos[iPlane - 1][iBar - 1]->Fill(pos, parz[0] * TMath::Power(qb, parz[2]) + parz[1]);
+                    // fhQvsTHit[iPlane - 1][iBar - 1]->Fill(qb, THit);
+                    // fhTvsTHit[iPlane - 1][iBar - 1]->Fill(dt_mod, THit);
+                }
+
+                for (int e = 0; e < event.size(); e++)
+                {
+                    LOG(debug) << event[e].charge << " " << event[e].time << " " << event[e].xpos << " "
+                               << event[e].ypos << " " << event[e].plane << " " << event[e].bar;
+                }
+
+                ++top_i;
+                ++bot_i;
+            }
+            else if (dt < 0 && dt > -c_range_ns / 2)
+            {
+                ++top_i;
+                LOG(debug) << "Not in bar coincidence increase top counter";
+            }
+            else
+            {
+                ++bot_i;
+                LOG(debug) << "Not in bar coincidence increase bot counter";
+            }
+        }
+    }
+
+    // Now all hits in this event are analyzed
+
+    LOG(debug) << "Hits in this event: " << event.size();
+    bool tArrU[event.size() + 1];
+    for (int i = 0; i < (event.size() + 1); i++)
+        tArrU[i] = kFALSE;
+
+    for (int i = 1; i <= fNofPlanes; i++)
+    {
+        for (int j = 0; j < fPaddlesPerPlane + 1; j++)
+        {
+            if (vmultihits[i][j] > 1)
+            {
+                bars_with_multihit++;
+                multihit += vmultihits[i][j] - 1;
+                // if(vmultihits[i][j]>3)cout<<vmultihits[i][j] - 1<<"\n";
+            }
+        }
+    }
+
+    std::sort(event.begin(), event.end(), [](hit const& a, hit const& b) { return a.time < b.time; });
+    // Now we have all hits in this event time sorted
+
+    if (fTofdHisto)
+    {
+        LOG(debug) << "Charge Time xpos ypos plane bar";
+        for (int hit = 0; hit < event.size(); hit++)
+        {
+            LOG(debug) << event[hit].charge << " " << event[hit].time << " " << event[hit].xpos << " "
+                       << event[hit].ypos << " " << event[hit].plane << " " << event[hit].bar;
+            // if (event[hit].plane == 2 && (event[hit].bar < 21 || event[hit].bar > 24)) fhTvsQ[event[hit].plane -
+            // 1]->Fill(event[hit].time-event[0].time,event[hit].charge);
+            if (event[hit].plane == 2 && (event[hit].bar == 18))
+                fhTvsQ[event[hit].plane - 1]->Fill(event[hit].time - event[0].time, event[hit].charge);
+        }
+    }
+
+    // Now we can analyze the hits in this event
+
+    // select events with feasible times
+    double hit_coinc = 20.; // coincidence window for hits in one event in ns. physics says max 250 ps
+    double time0;
+    for (int ihit = 0; ihit < event.size();)
+    { // loop over all hits in this event
+        LOG(debug) << "Set new coincidence window: " << event[ihit].plane << " " << event[ihit].bar << " "
+                   << event[ihit].time << " " << event[ihit].charge;
+        time0 = event[ihit].time;              // time of first hit in coincidence window
+        double charge0 = event[ihit].charge; // charge of first hit in coincidence window
+        int plane0 = event[ihit].plane;      // plane of first hit in coincidence window
+        std::vector<double> goodcharge;
+        std::vector<double> goodplane;
+        std::vector<double> goodbar;
+        struct goodhit
+        {
+            double goodq;
+            double goodp;
+            double goodb;
+        };
+        struct by_charge
+        {
+            bool operator()(goodhit const& a, goodhit const& b) const noexcept { return a.goodq < b.goodq; }
+        };
+        std::vector<goodhit> goodevents;
+
+        while (event[ihit].time < time0 + hit_coinc)
+        { // check if in coincidence window
+            if (fTofdHisto)
+            {
+                if (event[ihit].plane == plane0 && charge0 != event[ihit].charge)
+                {
+                    fhQ0Qt[event[ihit].plane - 1]->Fill(charge0, event[ihit].charge);
+                }
+            }
+
+            if ((event[ihit].charge > 5.5 && event[ihit].charge < 6.5) ||
+                (event[ihit].charge > 1.5 && event[ihit].charge < 2.5))
+            {
+                goodcharge.push_back(event[ihit].charge);
+                goodplane.push_back(event[ihit].plane);
+                goodbar.push_back(event[ihit].bar);
+            }
+
+            LOG(debug) << "Hit in coincidence window: " << event[ihit].plane << " " << event[ihit].bar << " "
+                       << event[ihit].time << " " << event[ihit].charge;
+
+            ihit++;
+            if (ihit >= event.size())
+                break;
+        }
+        if (goodcharge.size() > 3)
+        {
+            if (goodcharge.size() == 4)
+            {
+                if (std::accumulate(goodcharge.begin(), goodcharge.end(), 0.0) > 14. &&
+                    std::accumulate(goodcharge.begin(), goodcharge.end(), 0.0) < 18.)
+                {
+                    if (std::accumulate(goodplane.begin(), goodplane.end(), 0) == 6.)
+                    {
+                        LOG(debug) << "Found good pair 2 times in all planes";
+                        for (int g = 0; g < goodcharge.size(); g++)
+                        {
+                            LOG(debug) << goodcharge.at(g);
+                            LOG(debug) << goodplane.at(g);
+                            LOG(debug) << goodbar.at(g);
+                            goodevents.push_back({ goodcharge.at(g), goodplane.at(g), goodbar.at(g) });
+                        }
+                        goodpair++;
+                        goodpair4++;
+                    }
+                    else
+                    {
+                        goodpair3++;
+                    }
+                }
+            }
+            else if (std::accumulate(goodcharge.begin(), goodcharge.end(), 0.0) > 14.)
+                goodpair6++;
+        }
+        if (goodcharge.size() == 3)
+        {
+            if (std::accumulate(goodcharge.begin(), goodcharge.end(), 0.0) > 8.5 &&
+                std::accumulate(goodcharge.begin(), goodcharge.end(), 0.0) < 15.5)
+            {
+                if (std::accumulate(goodplane.begin(), goodplane.end(), 0) == 4 ||
+                    std::accumulate(goodplane.begin(), goodplane.end(), 0) == 5)
+                {
+                    LOG(debug) << "Found good pair at least once in all planes";
+                    for (int g = 0; g < goodcharge.size(); g++)
+                    {
+                        LOG(debug) << goodcharge.at(g);
+                    }
+                    goodpair++;
+                    goodpair5++;
+                }
+                else
+                {
+                    goodpair7++;
+                }
+            }
+        }
+        if (goodcharge.size() == 2)
+        {
+            if (std::accumulate(goodcharge.begin(), goodcharge.end(), 0.0) > 7. &&
+                std::accumulate(goodcharge.begin(), goodcharge.end(), 0.0) < 9.)
+            {
+                if (std::accumulate(goodplane.begin(), goodplane.end(), 0) == 2. ||
+                    std::accumulate(goodplane.begin(), goodplane.end(), 0) == 4.)
+                {
+                    LOG(debug) << "Found good pair in one plane";
+                    for (int g = 0; g < goodcharge.size(); g++)
+                    {
+                        LOG(debug) << goodcharge.at(g);
+                    }
+                    goodpair++;
+                    goodpair1++;
+                }
+                if (std::accumulate(goodplane.begin(), goodplane.end(), 0) == 3.)
+                {
+                    LOG(debug) << "Found good pair in different planes";
+                    for (int g = 0; g < goodcharge.size(); g++)
+                    {
+                        LOG(debug) << goodcharge.at(g);
+                    }
+                    goodpair++;
+                    goodpair2++;
+                }
+            }
+        }
+        std::sort(
+            goodevents.begin(), goodevents.end(), [](goodhit const& a, goodhit const& b) { return a.goodq < b.goodq; });
+        for (int g = 0; g < goodevents.size(); g++)
+        {
+            LOG(debug) << goodevents[g].goodq;
+            LOG(debug) << goodevents[g].goodp;
+            LOG(debug) << goodevents[g].goodb;
+        }
+    }
+
+    if (fTofdHisto)
+    {
+        size_t ihit = 0;
+        for (; ihit < event.size();)
+        {                                                                          // loop over all hits
+            fhQ[event[ihit].plane - 1]->Fill(event[ihit].bar, event[ihit].charge); // charge per plane
+            fhQvsEvent[event[ihit].plane - 1]->Fill(fnEvents, event[ihit].charge); // charge vs event #
+            fhxy[event[ihit].plane - 1]->Fill(event[ihit].bar, event[ihit].ypos);  // xy of plane
+            ihit++;
+        }
+    }
+
+    // store events
+    for (int hit = 0; hit < event.size(); hit++)
+    { // loop over hits
+        if (tArrU[hit] == false)
+        {
+            eventstore++;
+            tArrU[hit] = true;
+            // store single hits
+            singlehit++;
+            new ((*fHitItems)[fHitItems->GetEntriesFast()]) R3BTofdHitData(event[hit].time,
+                                                                           event[hit].xpos,
+                                                                           event[hit].ypos,
+                                                                           event[hit].charge,
+                                                                           -1.,
+                                                                           event[hit].charge,
+                                                                           event[hit].plane,
+                                                                           event[hit].bar,
+                                                                           event[hit].time_raw,
+                                                                           event[hit].tof);
+        }
+    }
+
+    LOG(debug) << "Used up hits in this event:";
+    for (int a = 0; a < event.size(); a++)
+    {
+        LOG(debug) << "Event " << a << " " << tArrU[a] << " ";
+        if (tArrU[a] != true)
+            LOG(fatal) << "Not all events analyzed!";
+    }
+
+    LOG(debug) << "------------------------------------------------------\n";
+    fnEvents++;
 }
 
 void R3BTofDCal2Hit::CreateHistograms()

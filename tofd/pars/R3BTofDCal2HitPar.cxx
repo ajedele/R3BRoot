@@ -15,6 +15,7 @@
 #include "R3BCoarseTimeStitch.h"
 #include "R3BEventHeader.h"
 #include "R3BLogger.h"
+#include "R3BTDCCyclicCorrector.h"
 #include "R3BTofDHitModulePar.h"
 #include "R3BTofDHitPar.h"
 #include "R3BTofDMappingPar.h"
@@ -137,7 +138,7 @@ InitStatus R3BTofDCal2HitPar::Init()
             CreateHistograms(i, j);
 
     // Definition of a time stich object to correlate times coming from different systems
-    fTimeStitch = std::make_unique<R3BCoarseTimeStitch>();
+    fCyclicCorrector = std::make_unique<R3BTDCCyclicCorrector>();
 
     return kSUCCESS;
 }
@@ -235,8 +236,8 @@ void R3BTofDCal2HitPar::Exec(Option_t* /*option*/)
 
             // Shift the cyclic difference window by half a window-length and move it back,
             // this way the trigger time will be at 0.
-            auto top_ns = fTimeStitch->GetTime(top->GetTimeLeading_ns() - top_trig_ns);
-            auto bot_ns = fTimeStitch->GetTime(bot->GetTimeLeading_ns() - bot_trig_ns);
+            auto top_ns = fCyclicCorrector->GetTAMEXTime(top->GetTimeLeading_ns() - top_trig_ns);
+            auto bot_ns = fCyclicCorrector->GetTAMEXTime(bot->GetTimeLeading_ns() - bot_trig_ns);
             auto dt = top_ns - bot_ns;
             // Handle wrap-around.
             auto dt_mod = fmod(dt + c_range_ns, c_range_ns);
@@ -289,7 +290,8 @@ void R3BTofDCal2HitPar::Exec(Option_t* /*option*/)
                     fhTsync[iPlane - 1]->Fill(iBar, THit);
 
                     // Tof with respect LOS detector
-                    auto tof = fTimeStitch->GetTime((top_ns + bot_ns) / 2. - fHeader->GetTStart(), "tamex", "vftx");
+                    auto tof = fCyclicCorrector->GetTAMEXTime((top_ns + bot_ns) / 2. - fHeader->GetTStart());
+                    fh1_tofsync[iPlane - 1][iBar - 1]->Fill(tof);
                     // std::cout << "top" << top_ns << " bot"<<bot_ns << " start" << header->GetTStart() << std::endl;
                 }
 
@@ -335,7 +337,10 @@ void R3BTofDCal2HitPar::Exec(Option_t* /*option*/)
                     fhTsync[iPlane - 1]->Fill(iBar, THit);
 
                     // Tof with respect LOS detector
-                    auto tof = fTimeStitch->GetTime((top_ns + bot_ns) / 2. - fHeader->GetTStart(), "tamex", "vftx");
+                    auto tof_tofd = fCyclicCorrector->GetTAMEXTime((top_ns + bot_ns) / 2.);
+                    auto tof_los = fCyclicCorrector->GetVFTXTime(fHeader->GetTStart());
+                    auto tof = tof_tofd - tof_los;
+                    fh1_tofsync[iPlane - 1][iBar - 1]->Fill(tof - par->GetTofSyncOffset());
                 }
                 else if (fTofdQ > 0 && fParameter > 1)
                 {

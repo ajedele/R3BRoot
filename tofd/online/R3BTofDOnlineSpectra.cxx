@@ -41,6 +41,7 @@
 #include "R3BLogger.h"
 #include "R3BShared.h"
 #include "R3BTCalEngine.h"
+#include "R3BTDCCyclicCorrector.h"
 #include "R3BTofDMappingPar.h"
 #include "R3BTofDOnlineSpectra.h"
 #include "R3BTofdCalData.h"
@@ -62,7 +63,7 @@ R3BTofDOnlineSpectra::R3BTofDOnlineSpectra()
 }
 
 // R3BTofDOnlineSpectra::Standard Constructor --------------------------
-R3BTofDOnlineSpectra::R3BTofDOnlineSpectra(const TString& name, Int_t iVerbose)
+R3BTofDOnlineSpectra::R3BTofDOnlineSpectra(const TString& name, int iVerbose)
     : FairTask(name, iVerbose)
 {
 }
@@ -153,7 +154,7 @@ InitStatus R3BTofDOnlineSpectra::Init()
         fh2_tofd_ypos_cal.resize(fNofPlanes);
         fh2_tofd_timedif_cal.resize(fNofPlanes);
 
-        for (Int_t j = 0; j < fNofPlanes; j++)
+        for (int j = 0; j < fNofPlanes; j++)
         {
             char strName1[255];
             sprintf(strName1, "tofd_channels_plane_%d", j + 1);
@@ -389,7 +390,7 @@ InitStatus R3BTofDOnlineSpectra::Init()
         fh_tofd_bars.resize(fNofPlanes);
         fh_tofd_time_hit.resize(fNofPlanes);
 
-        for (Int_t j = 0; j < fNofPlanes; j++)
+        for (int j = 0; j < fNofPlanes; j++)
         {
             char strName3[255];
             sprintf(strName3, "tofd_hit_Q_plane_%d", j + 1);
@@ -548,10 +549,10 @@ InitStatus R3BTofDOnlineSpectra::Init()
         cToFd_los_h2_wt->Divide(2, 2);
         fh2_tofd_time_los_cal.resize(fNofPlanes);
 
-        for (Int_t j = 0; j < fPaddlesPerPlane; j++)
+        for (int j = 0; j < fPaddlesPerPlane; j++)
             fh_tofd_time_los[j].resize(fNofPlanes);
 
-        for (Int_t i = 0; i < fNofPlanes; i++)
+        for (int i = 0; i < fNofPlanes; i++)
         {
             char strNameLos_c[455];
             sprintf(strNameLos_c, "tofd_los_timediff_plane_%d", i + 1);
@@ -577,7 +578,7 @@ InitStatus R3BTofDOnlineSpectra::Init()
 
             auto cToFd_los = new TCanvas(strNameLos_c, strNameLos_c, 20, 20, 1120, 1020);
             cToFd_los->Divide(5, 9);
-            for (Int_t j = 0; j < fPaddlesPerPlane; j++)
+            for (int j = 0; j < fPaddlesPerPlane; j++)
             {
                 char strNameLos[255];
                 sprintf(strNameLos, "tofd_los_timediff_bar_%d_plane_%d", j + 1, i + 1);
@@ -706,7 +707,7 @@ InitStatus R3BTofDOnlineSpectra::Init()
     run->GetHttpServer()->RegisterCommand("Reset_TofD_HIST", Form("/Objects/%s/->Reset_Histo()", GetName()));
 
     // Definition of a time stich object to correlate times coming from different systems
-    fTimeStitch = std::make_unique<R3BCoarseTimeStitch>();
+    fCyclicCorrector = new R3BTDCCyclicCorrector();
 
     return kSUCCESS;
 }
@@ -738,7 +739,7 @@ void R3BTofDOnlineSpectra::Reset_Histo()
             fh_tofd_bars[i]->Reset();
             fh_tofd_time_los_h2[i]->Reset();
             fh2_tofd_time_los_cal[i]->Reset();
-            for (Int_t j = 0; j < fPaddlesPerPlane; j++)
+            for (int j = 0; j < fPaddlesPerPlane; j++)
                 fh_tofd_time_los[j][i]->Reset();
         }
         for (int i = 0; i < fNofPlanes - 1; i++)
@@ -763,9 +764,9 @@ void R3BTofDOnlineSpectra::Exec(Option_t* option)
     if ((fTrigger >= 0) && (header) && (header->GetTrigger() != fTrigger))
         return;
     // fTpat = 1-16; fTpat_bit = 0-15
-    Int_t fTpat_bit1 = fTpat1 - 1;
-    Int_t fTpat_bit2 = fTpat2 - 1;
-    Int_t tpatbin = 0;
+    int fTpat_bit1 = fTpat1 - 1;
+    int fTpat_bit2 = fTpat2 - 1;
+    int tpatbin = 0;
     std::vector<int> tpatindex;
     if (header && fTpat1 >= 0 && fTpat2 >= 0)
     {
@@ -784,7 +785,7 @@ void R3BTofDOnlineSpectra::Exec(Option_t* option)
     }
     else if (header)
     {
-        for (Int_t i = 0; i < 16; i++)
+        for (int i = 0; i < 16; i++)
         {
             tpatbin = (header->GetTpat() & (1 << i));
             if (tpatbin != 0)
@@ -792,33 +793,33 @@ void R3BTofDOnlineSpectra::Exec(Option_t* option)
         }
     }
 
-    Int_t NumPaddles[fNofPlanes];
+    int NumPaddles[fNofPlanes];
     for (int i = 0; i < fNofPlanes; i++)
         NumPaddles[i] = 0;
 
     if (fMappedItems)
     {
-        Int_t nMapped = fMappedItems->GetEntriesFast();
-        Int_t iPlaneMem = 1, iBarMem = 0;
+        int nMapped = fMappedItems->GetEntriesFast();
+        int iPlaneMem = 1, iBarMem = 0;
 
-        Int_t nsum_top[fNofPlanes];
-        Int_t nsum_bot[fNofPlanes];
-        for (Int_t p = 0; p < fNofPlanes; p++)
+        int nsum_top[fNofPlanes];
+        int nsum_bot[fNofPlanes];
+        for (int p = 0; p < fNofPlanes; p++)
         {
             nsum_top[p] = 0;
             nsum_bot[p] = 0;
         }
 
-        for (Int_t imapped = 0; imapped < nMapped; imapped++)
+        for (int imapped = 0; imapped < nMapped; imapped++)
         {
             auto mapped = dynamic_cast<R3BTofdMappedData*>(fMappedItems->At(imapped));
             if (!mapped)
                 continue; // should not happen
 
-            Int_t const iPlane = mapped->GetDetectorId(); // 1..n
-            Int_t const iBar = mapped->GetBarId();        // 1..n
-            Int_t const iSide = mapped->GetSideId();      // 1..n
-            Int_t const iEdge = mapped->GetEdgeId();
+            int const iPlane = mapped->GetDetectorId(); // 1..n
+            int const iBar = mapped->GetBarId();        // 1..n
+            int const iSide = mapped->GetSideId();      // 1..n
+            int const iEdge = mapped->GetEdgeId();
 
             if (iSide == 1 && iEdge == 1 && iPlane < fNofPlanes)
                 nsum_bot[iPlane - 1] += 1;
@@ -847,7 +848,7 @@ void R3BTofDOnlineSpectra::Exec(Option_t* option)
                     fh_tofd_channels[iPlane - 1]->Fill(iBar);
             }
         }
-        for (Int_t i = 0; i < fNofPlanes; i++)
+        for (int i = 0; i < fNofPlanes; i++)
         {
             fh_num_side[i]->Fill(nsum_bot[i], nsum_top[i]);
         }
@@ -856,18 +857,18 @@ void R3BTofDOnlineSpectra::Exec(Option_t* option)
     std::vector<double> fTof_without_trig(44, 0.);
     if (fCalItems)
     {
-        UInt_t vmultihits[fNofPlanes + 1][fPaddlesPerPlane];
-        UInt_t vmultihits_top[fNofPlanes + 1][fPaddlesPerPlane];
-        UInt_t vmultihits_bot[fNofPlanes + 1][fPaddlesPerPlane];
-        Double_t time_bar[fNofPlanes + 1][fPaddlesPerPlane][fMaxmul];
-        for (Int_t i = 0; i < fNofPlanes + 1; i++)
+        Uint vmultihits[fNofPlanes + 1][fPaddlesPerPlane];
+        Uint vmultihits_top[fNofPlanes + 1][fPaddlesPerPlane];
+        Uint vmultihits_bot[fNofPlanes + 1][fPaddlesPerPlane];
+        double time_bar[fNofPlanes + 1][fPaddlesPerPlane][fMaxmul];
+        for (int i = 0; i < fNofPlanes + 1; i++)
         {
-            for (Int_t j = 0; j < fPaddlesPerPlane; j++)
+            for (int j = 0; j < fPaddlesPerPlane; j++)
             {
                 vmultihits[i][j] = 0;
                 vmultihits_top[i][j] = 0;
                 vmultihits_bot[i][j] = 0;
-                for (Int_t l = 0; l < fMaxmul; l++)
+                for (int l = 0; l < fMaxmul; l++)
                 {
                     time_bar[i][j][l] = 0. / 0.;
                 }
@@ -875,9 +876,9 @@ void R3BTofDOnlineSpectra::Exec(Option_t* option)
         }
 
         //    std::cout<<"new event!*************************************\n";
-        Int_t nHits = fCalItems->GetEntriesFast();
+        int nHits = fCalItems->GetEntriesFast();
 
-        Int_t nHitsEvent = 0;
+        int nHitsEvent = 0;
         // Organize cals into bars.
         struct Entry
         {
@@ -887,7 +888,7 @@ void R3BTofDOnlineSpectra::Exec(Option_t* option)
 
         std::map<size_t, Entry> bar_map;
         //   puts("Event");
-        for (Int_t ihit = 0; ihit < nHits; ihit++)
+        for (int ihit = 0; ihit < nHits; ihit++)
         {
             auto* hit = dynamic_cast<R3BTofdCalData*>(fCalItems->At(ihit));
             size_t idx = (hit->GetDetectorId() - 1) * fPaddlesPerPlane + hit->GetBarId() - 1;
@@ -923,12 +924,12 @@ void R3BTofDOnlineSpectra::Exec(Option_t* option)
             for (; top_i < top_vec.size();)
             {
                 auto top = top_vec.at(top_i);
-                Int_t top_trig_i = 0;
+                int top_trig_i = 0;
 
                 if (fMapPar)
                     top_trig_i = fMapPar->GetTrigMap(top->GetDetectorId(), top->GetBarId(), top->GetSideId());
 
-                Double_t top_trig_ns = 0;
+                double top_trig_ns = 0;
                 if (top_trig_i < trig_map.size() && trig_map.at(top_trig_i))
                 {
                     auto top_trig = trig_map.at(top_trig_i);
@@ -943,8 +944,8 @@ void R3BTofDOnlineSpectra::Exec(Option_t* option)
                     }
                 }
 
-                Int_t iPlane = top->GetDetectorId(); // 1..n
-                Int_t iBar = top->GetBarId();        // 1..n
+                int iPlane = top->GetDetectorId(); // 1..n
+                int iBar = top->GetBarId();        // 1..n
                 if (iPlane > fNofPlanes)             // this also errors for iDetector==0
                 {
                     R3BLOG(error, "More detectors than expected! Det: " << iPlane << " allowed are 1.." << fNofPlanes);
@@ -965,12 +966,12 @@ void R3BTofDOnlineSpectra::Exec(Option_t* option)
             for (; bot_i < bot_vec.size();)
             {
                 auto bot = bot_vec.at(bot_i);
-                Int_t bot_trig_i = 0;
+                int bot_trig_i = 0;
 
                 if (fMapPar)
                     bot_trig_i = fMapPar->GetTrigMap(bot->GetDetectorId(), bot->GetBarId(), bot->GetSideId());
 
-                Double_t bot_trig_ns = 0;
+                double bot_trig_ns = 0;
                 if (bot_trig_i < trig_map.size() && trig_map.at(bot_trig_i))
                 {
                     auto bot_trig = trig_map.at(bot_trig_i);
@@ -991,8 +992,8 @@ void R3BTofDOnlineSpectra::Exec(Option_t* option)
                     fmod(bot->GetTimeLeading_ns() - bot_trig_ns + fC_range_ns + fC_range_ns / 2, fC_range_ns) -
                     fC_range_ns / 2;
 
-                Int_t iPlane = bot->GetDetectorId(); // 1..n
-                Int_t iBar = bot->GetBarId();        // 1..n
+                int iPlane = bot->GetDetectorId(); // 1..n
+                int iBar = bot->GetBarId();        // 1..n
                 if (iPlane > fNofPlanes)             // this also errors for iDetector==0
                 {
                     R3BLOG(error, "More detectors than expected! Det: " << iPlane << " allowed are 1.." << fNofPlanes);
@@ -1015,9 +1016,9 @@ void R3BTofDOnlineSpectra::Exec(Option_t* option)
             }
         }
 
-        for (Int_t ipl = 0; ipl < fNofPlanes; ipl++)
+        for (int ipl = 0; ipl < fNofPlanes; ipl++)
         {
-            for (Int_t ibr = 1; ibr < fPaddlesPerPlane + 1; ibr++)
+            for (int ibr = 1; ibr < fPaddlesPerPlane + 1; ibr++)
             {
                 fh_tofd_multihit[ipl]->Fill(-ibr - 1, vmultihits_bot[ipl][ibr - 1]);
                 fh_tofd_multihit[ipl]->Fill(ibr, vmultihits_top[ipl][ibr - 1]);
@@ -1037,15 +1038,15 @@ void R3BTofDOnlineSpectra::Exec(Option_t* option)
                 auto topc = topc_vec.at(topc_i);
                 auto botc = botc_vec.at(botc_i);
 
-                Int_t topc_trig_i = 0;
-                Int_t botc_trig_i = 0;
+                int topc_trig_i = 0;
+                int botc_trig_i = 0;
                 if (fMapPar)
                 {
                     topc_trig_i = fMapPar->GetTrigMap(topc->GetDetectorId(), topc->GetBarId(), topc->GetSideId());
                     botc_trig_i = fMapPar->GetTrigMap(botc->GetDetectorId(), botc->GetBarId(), botc->GetSideId());
                 }
 
-                Double_t topc_trig_ns = 0, botc_trig_ns = 0;
+                double topc_trig_ns = 0, botc_trig_ns = 0;
                 if (topc_trig_i < trig_map.size() && trig_map.at(topc_trig_i) && botc_trig_i < trig_map.size() &&
                     trig_map.at(botc_trig_i))
                 {
@@ -1067,8 +1068,8 @@ void R3BTofDOnlineSpectra::Exec(Option_t* option)
 
                 // Shift the cyclic difference window by half a window-length and move it back,
                 // this way the trigger time will be at 0.
-                auto topc_ns = fTimeStitch->GetTime(topc->GetTimeLeading_ns() - topc_trig_ns);
-                auto botc_ns = fTimeStitch->GetTime(botc->GetTimeLeading_ns() - botc_trig_ns);
+                auto topc_ns = fCyclicCorrector->GetTAMEXTime(topc->GetTimeLeading_ns() - topc_trig_ns);
+                auto botc_ns = fCyclicCorrector->GetTAMEXTime(botc->GetTimeLeading_ns() - botc_trig_ns);
 
                 auto dt = topc_ns - botc_ns;
                 // Handle wrap-around.
@@ -1114,8 +1115,8 @@ void R3BTofDOnlineSpectra::Exec(Option_t* option)
                 {
                     // Hit!
                     // std::cout << "Hit!\n";
-                    Int_t iPlane = topc->GetDetectorId(); // 1..n
-                    Int_t iBar = topc->GetBarId();        // 1..n
+                    int iPlane = topc->GetDetectorId(); // 1..n
+                    int iBar = topc->GetBarId();        // 1..n
                     if (iPlane > fNofPlanes)              // this also errors for iDetector==0
                     {
                         R3BLOG(error,
@@ -1129,8 +1130,8 @@ void R3BTofDOnlineSpectra::Exec(Option_t* option)
                         continue;
                     }
 
-                    auto topc_tot = fTimeStitch->GetTime(topc->GetTimeTrailing_ns() - topc->GetTimeLeading_ns());
-                    auto botc_tot = fTimeStitch->GetTime(botc->GetTimeTrailing_ns() - botc->GetTimeLeading_ns());
+                    auto topc_tot = fCyclicCorrector->GetTAMEXTime(topc->GetTimeTrailing_ns() - topc->GetTimeLeading_ns());
+                    auto botc_tot = fCyclicCorrector->GetTAMEXTime(botc->GetTimeTrailing_ns() - botc->GetTimeLeading_ns());
 
                     fh_tofd_TotPm_coinc[iPlane - 1]->Fill(-iBar - 1, botc_tot);
                     fh_tofd_TotPm_coinc[iPlane - 1]->Fill(iBar, topc_tot);
@@ -1138,7 +1139,7 @@ void R3BTofDOnlineSpectra::Exec(Option_t* option)
                     // std::cout<<"ToT: "<<top_tot << " "<<bot_tot<<"\n";
 
                     // register multi hits
-                    Int_t imlt = vmultihits[iPlane - 1][iBar - 1];
+                    int imlt = vmultihits[iPlane - 1][iBar - 1];
                     time_bar[iPlane - 1][iBar - 1][imlt] = (topc_ns + botc_ns) / 2.;
                     vmultihits[iPlane - 1][iBar - 1] += 1;
 
@@ -1156,20 +1157,19 @@ void R3BTofDOnlineSpectra::Exec(Option_t* option)
             }
         }
 
-        for (Int_t ipl = 0; ipl < fNofPlanes; ipl++)
+        for (int ipl = 0; ipl < fNofPlanes; ipl++)
         {
-            for (Int_t ibr = 1; ibr < fPaddlesPerPlane + 1; ibr++)
+            for (int ibr = 1; ibr < fPaddlesPerPlane + 1; ibr++)
             {
                 fh_tofd_multihit_coinc[ipl]->Fill(ibr, vmultihits[ipl][ibr - 1]);
                 if (ipl > 0)
                 {
-                    for (Int_t imult1 = 0; imult1 < vmultihits[ipl][ibr - 1]; imult1++)
+                    for (int imult1 = 0; imult1 < vmultihits[ipl][ibr - 1]; imult1++)
                     {
-                        for (Int_t imult2 = 0; imult2 < vmultihits[ipl - 1][ibr - 1]; imult2++)
+                        for (int imult2 = 0; imult2 < vmultihits[ipl - 1][ibr - 1]; imult2++)
                         {
-                            Double_t tof_plane = 0. / 0.;
-                            tof_plane = fTimeStitch->GetTime(time_bar[ipl][ibr - 1][imult1] -
-                                                             time_bar[ipl - 1][ibr - 1][imult2]);
+                            double tof_plane = 0. / 0.;
+                            tof_plane = fCyclicCorrector->GetTAMEXTime(time_bar[ipl][ibr - 1][imult1] - time_bar[ipl - 1][ibr - 1][imult2]);
                             fh_tofd_dt[ipl - 1]->Fill(ibr, tof_plane);
                         }
                     }
@@ -1181,15 +1181,15 @@ void R3BTofDOnlineSpectra::Exec(Option_t* option)
 
     if (fHitItems)
     {
-        Int_t nHits = fHitItems->GetEntriesFast();
+        int nHits = fHitItems->GetEntriesFast();
         if (nHits > fMaxmul)
             return;
 
-        Double_t x[fNofPlanes][fMaxmul], y[fNofPlanes][fMaxmul], t[fNofPlanes][fMaxmul], q[fNofPlanes][fMaxmul],
+        double x[fNofPlanes][fMaxmul], y[fNofPlanes][fMaxmul], t[fNofPlanes][fMaxmul], q[fNofPlanes][fMaxmul],
             bar[fNofPlanes][fMaxmul];
-        for (Int_t i = 0; i < fNofPlanes; i++)
+        for (int i = 0; i < fNofPlanes; i++)
         {
-            for (Int_t k = 0; k < fMaxmul; k++)
+            for (int k = 0; k < fMaxmul; k++)
             {
                 x[i][k] = -1000.;
                 y[i][k] = -1000.;
@@ -1199,22 +1199,22 @@ void R3BTofDOnlineSpectra::Exec(Option_t* option)
             }
         }
 
-        Int_t nMulti[fNofPlanes], iCounts[fNofPlanes];
-        for (Int_t i = 0; i < fNofPlanes; i++)
+        int nMulti[fNofPlanes], iCounts[fNofPlanes];
+        for (int i = 0; i < fNofPlanes; i++)
         {
             nMulti[i] = 0;
             iCounts[i] = 0;
         }
 
         double charges[4] = { 0 };
-        for (Int_t ihit = 0; ihit < nHits; ihit++)
+        for (int ihit = 0; ihit < nHits; ihit++)
         {
             auto hitTofd = dynamic_cast<R3BTofdHitData*>(fHitItems->At(ihit));
             if (IS_NAN(hitTofd->GetTime()))
                 continue;
-            Int_t iPlane = hitTofd->GetDetId();
-            Double_t randx = (std::rand() / (float)RAND_MAX) - 0.5;
-            Int_t ictemp = iCounts[iPlane - 1];
+            int iPlane = hitTofd->GetDetId();
+            double randx = (std::rand() / (float)RAND_MAX) - 0.5;
+            int ictemp = iCounts[iPlane - 1];
             x[iPlane - 1][ictemp] = hitTofd->GetX() + 2.7 * randx;
             y[iPlane - 1][ictemp] = hitTofd->GetY();
             t[iPlane - 1][ictemp] = hitTofd->GetTime();
@@ -1259,16 +1259,16 @@ void R3BTofDOnlineSpectra::Exec(Option_t* option)
         if (charges[2] > 0 && charges[3] > 0)
             fh2_tofd_charges34->Fill(charges[2], charges[3]);
 
-        for (Int_t i = 0; i < fNofPlanes; i++)
+        for (int i = 0; i < fNofPlanes; i++)
         {
             fh_tofd_multihit_hit[i]->Fill(nMulti[i]);
             if (i > 0)
             {
-                for (Int_t im1 = 0; im1 < iCounts[i]; im1++)
+                for (int im1 = 0; im1 < iCounts[i]; im1++)
                 {
-                    for (Int_t im2 = 0; im2 < iCounts[i - 1]; im2++)
+                    for (int im2 = 0; im2 < iCounts[i - 1]; im2++)
                     {
-                        Double_t tdif = fTimeStitch->GetTime(t[i][im1] - t[i - 1][im2]);
+                        double tdif = fCyclicCorrector->GetTAMEXTime(t[i][im1] - t[i - 1][im2]);
                         fh_tofd_dt_hit[i - 1]->Fill(bar[i][im1], tdif);
                     }
                 }
@@ -1300,7 +1300,7 @@ void R3BTofDOnlineSpectra::FinishTask()
 {
     if (fCalItems)
     {
-        for (Int_t i = 0; i < fNofPlanes; i++)
+        for (int i = 0; i < fNofPlanes; i++)
         {
             fh_tofd_TotPm[i]->Write();
             fh_tofd_TotPm_coinc[i]->Write();
@@ -1311,14 +1311,14 @@ void R3BTofDOnlineSpectra::FinishTask()
             fh2_tofd_ypos_cal[i]->Write();
             fh2_tofd_timedif_cal[i]->Write();
         }
-        for (Int_t i = 0; i < fNofPlanes - 1; i++)
+        for (int i = 0; i < fNofPlanes - 1; i++)
         {
             fh_tofd_dt[i]->Write();
         }
     }
     if (fHitItems)
     {
-        for (Int_t i = 0; i < fNofPlanes; i++)
+        for (int i = 0; i < fNofPlanes; i++)
         {
             fh_tofd_Tot_hit[i]->Write();
             fh_tofd_time_hit[i]->Write();
@@ -1328,7 +1328,7 @@ void R3BTofDOnlineSpectra::FinishTask()
             fh_tofd_time_los_h2[i]->Write();
             fh2_tofd_time_los_cal[i]->Write();
         }
-        for (Int_t i = 0; i < fNofPlanes - 1; i++)
+        for (int i = 0; i < fNofPlanes - 1; i++)
         {
             fh_tofd_dt_hit[i]->Write();
         }

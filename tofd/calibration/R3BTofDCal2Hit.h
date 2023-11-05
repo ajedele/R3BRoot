@@ -26,7 +26,7 @@ class R3BTofDHitPar;
 class R3BEventHeader;
 class R3BTofDMappingPar;
 class R3BTofDHitPar;
-class R3BCoarseTimeStitch;
+class R3BTDCCyclicCorrector;
 class TH1F;
 class TH2F;
 

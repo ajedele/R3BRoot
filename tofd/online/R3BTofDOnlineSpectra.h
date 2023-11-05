@@ -26,7 +26,7 @@
 class TClonesArray;
 class TH1F;
 class TH2F;
-class R3BCoarseTimeStitch;
+class R3BTDCCyclicCorrector;
 class R3BEventHeader;
 class R3BTofDMappingPar;
 
@@ -118,7 +118,7 @@ class R3BTofDOnlineSpectra : public FairTask
 
   private:
     void SetParameter();
-    std::unique_ptr<R3BCoarseTimeStitch> fTimeStitch;
+    std::unique_ptr<R3BTDCCyclicCorrector> fCyclicCorrector;
     TClonesArray* fMappedItems = nullptr;
     TClonesArray* fCalItems = nullptr;
     TClonesArray* fHitItems = nullptr;

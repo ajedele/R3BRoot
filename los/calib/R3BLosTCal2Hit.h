@@ -31,7 +31,7 @@ class TH1F;
 class TH2F;
 class R3BEventHeader;
 class R3BLosHitPar;
-class R3BCoarseTimeStitch;
+class R3BTDCCyclicCorrector;
 
 class R3BLosTCal2Hit : public FairTask
 {
@@ -49,7 +49,7 @@ class R3BLosTCal2Hit : public FairTask
      * @param name a name of the task.
      * @param iVerbose a verbosity level.
      */
-    R3BLosTCal2Hit(const char* name, Int_t iVerbose = 1);
+    R3BLosTCal2Hit(const char* name, int iVerbose = 1);
 
     /**
      * Destructor.
@@ -85,7 +85,7 @@ class R3BLosTCal2Hit : public FairTask
      */
     virtual void FinishEvent();
 
-    inline void SetLosParamMCFD(Double_t offsetX, Double_t offsetY, Double_t veffX, Double_t veffY)
+    inline void SetLosParamMCFD(double offsetX, double offsetY, double veffX, double veffY)
     {
         flosOffsetX = offsetX;
         flosOffsetY = offsetY;
@@ -93,7 +93,7 @@ class R3BLosTCal2Hit : public FairTask
         flosVeffY = veffY;
     }
 
-    inline void SetLosParamToT(Double_t offsetXQ, Double_t offsetYQ, Double_t veffXQ, Double_t veffYQ)
+    inline void SetLosParamToT(double offsetXQ, double offsetYQ, double veffXQ, double veffYQ)
     {
         flosOffsetXQ = offsetXQ;
         flosOffsetYQ = offsetYQ;
@@ -101,7 +101,7 @@ class R3BLosTCal2Hit : public FairTask
         flosVeffYQ = veffYQ;
     }
 
-    inline void SetLosParamTAMEX(Double_t offsetXT, Double_t offsetYT, Double_t veffXT, Double_t veffYT)
+    inline void SetLosParamTAMEX(double offsetXT, double offsetYT, double veffXT, double veffYT)
     {
         flosOffsetXT = offsetXT;
         flosOffsetYT = offsetYT;
@@ -122,26 +122,26 @@ class R3BLosTCal2Hit : public FairTask
      * Method for setting the trigger value.
      * @param trigger 1 - physics, 2 - offspill, -1 - all events.
      */
-    inline void SetTrigger(Int_t trigger) { fTrigger = trigger; }
-    inline void SetTpat(Int_t tpat) { fTpat = tpat; }
-    inline void SetNofDet(UInt_t nDets) { fNofDetectors = nDets; }
+    inline void SetTrigger(int trigger) { fTrigger = trigger; }
+    inline void SetTpat(int tpat) { fTpat = tpat; }
+    inline void SetNofDet(Uint nDets) { fNofDetectors = nDets; }
 
     /**
      * Method for walk calculation.
      */
-    virtual Double_t walk(Int_t inum, Double_t tot);
+    virtual double walk(int inum, double tot);
 
     /**
      * Method for saturation correction.
      */
-    virtual Double_t satu(Int_t inum, Double_t tot, Double_t dt);
+    virtual double satu(int inum, double tot, double dt);
 
     virtual void SetParContainers();
 
     /** Method to select online mode **/
-    void SetOnline(Bool_t option) { fOnline = option; }
+    void SetOnline(bool option) { fOnline = option; }
 
-    void SetVFTXWindow(Double_t window) { fWindowV = window; }
+    void SetVFTXWindow(double window) { fWindowV = window; }
 
   private:
     void SetParameter();
@@ -149,46 +149,46 @@ class R3BLosTCal2Hit : public FairTask
     TClonesArray* fTCalItems;         /**< Array with Cal items - input data. */
     TClonesArray* fTCalTriggerItems;  /**< Array with Trigger Cal items - input data. */
     TClonesArray* fHitItems;          /**< Array with Hit items - output data. */
-    R3BCoarseTimeStitch* fTimeStitch; /**< Array with Hit items - output data. */
-    Float_t fp0, fp1;
+    R3BTDCCyclicCorrector* fCyclicCorrector;      /**< Array with Hit items - output data. */
+    float fp0, fp1;
     TArrayF* fLEMatchParams;
     TArrayF* fTEMatchParams;
 
-    Bool_t fOnline; // Don't store data for online
+    bool fOnline; // Don't store data for online
 
     R3BEventHeader* header; /**< Event header. */
 
     // check for trigger
-    Int_t fTrigger; /**< Trigger value. */
-    Int_t fTpat;
+    int fTrigger; /**< Trigger value. */
+    int fTpat;
 
-    Int_t fNumParamsTamexLE;
-    Int_t fNumParamsTamexTE;
-    UInt_t fNofDetectors; /**< Number of detectors. */
+    int fNumParamsTamexLE;
+    int fNumParamsTamexTE;
+    Uint fNofDetectors; /**< Number of detectors. */
 
-    UInt_t fNofHitItems; /**< Number of hit items for cur event. */
-    Double_t fClockFreq; /**< Clock cycle in [ns]. */
-    Double_t fWindowV;   // VFTX coincidence window in ns
-    Double_t flosVeffX;
-    Double_t flosVeffY;
-    Double_t flosOffsetX;
-    Double_t flosOffsetY;
-    Double_t flosVeffXQ;
-    Double_t flosVeffYQ;
-    Double_t flosOffsetXQ;
-    Double_t flosOffsetYQ;
-    Double_t flosVeffXT;
-    Double_t flosVeffYT;
-    Double_t flosOffsetXT;
-    Double_t flosOffsetYT;
-    Double_t walk_par[16][11]{}; // Array containing walk parameters: x=PM, y=min,max,p0...p9; MCFD and TAMEX considered
-    Double_t tot_par[8][4]{};    // Array containing walk parameters: x=PM, y=p0...p3;
+    Uint fNofHitItems; /**< Number of hit items for cur event. */
+    double fClockFreq; /**< Clock cycle in [ns]. */
+    double fWindowV;   // VFTX coincidence window in ns
+    double flosVeffX;
+    double flosVeffY;
+    double flosOffsetX;
+    double flosOffsetY;
+    double flosVeffXQ;
+    double flosVeffYQ;
+    double flosOffsetXQ;
+    double flosOffsetYQ;
+    double flosVeffXT;
+    double flosVeffYT;
+    double flosOffsetXT;
+    double flosOffsetYT;
+    double walk_par[16][11]{}; // Array containing walk parameters: x=PM, y=min,max,p0...p9; MCFD and TAMEX considered
+    double tot_par[8][4]{};    // Array containing walk parameters: x=PM, y=p0...p3;
     std::string fwalk_param_file;
     std::string ftot_param_file;
 
     TClonesArray* fMapped; /**< Array with mapped data - input data. */
 
-    Int_t Icount = 0;
+    int Icount = 0;
 
   public:
     ClassDef(R3BLosTCal2Hit, 1)
