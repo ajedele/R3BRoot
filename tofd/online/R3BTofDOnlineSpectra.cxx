@@ -1130,8 +1130,10 @@ void R3BTofDOnlineSpectra::Exec(Option_t* option)
                         continue;
                     }
 
-                    auto topc_tot = fCyclicCorrector->GetTAMEXTime(topc->GetTimeTrailing_ns() - topc->GetTimeLeading_ns());
-                    auto botc_tot = fCyclicCorrector->GetTAMEXTime(botc->GetTimeTrailing_ns() - botc->GetTimeLeading_ns());
+                    auto topc_tot =
+                        fCyclicCorrector->GetTAMEXTime(topc->GetTimeTrailing_ns() - topc->GetTimeLeading_ns());
+                    auto botc_tot =
+                        fCyclicCorrector->GetTAMEXTime(botc->GetTimeTrailing_ns() - botc->GetTimeLeading_ns());
 
                     fh_tofd_TotPm_coinc[iPlane - 1]->Fill(-iBar - 1, botc_tot);
                     fh_tofd_TotPm_coinc[iPlane - 1]->Fill(iBar, topc_tot);
@@ -1169,7 +1171,8 @@ void R3BTofDOnlineSpectra::Exec(Option_t* option)
                         for (int imult2 = 0; imult2 < vmultihits[ipl - 1][ibr - 1]; imult2++)
                         {
                             double tof_plane = 0. / 0.;
-                            tof_plane = fCyclicCorrector->GetTAMEXTime(time_bar[ipl][ibr - 1][imult1] - time_bar[ipl - 1][ibr - 1][imult2]);
+                            tof_plane = fCyclicCorrector->GetTAMEXTime(time_bar[ipl][ibr - 1][imult1] -
+                                                                       time_bar[ipl - 1][ibr - 1][imult2]);
                             fh_tofd_dt[ipl - 1]->Fill(ibr, tof_plane);
                         }
                     }

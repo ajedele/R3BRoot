@@ -18,12 +18,12 @@
 // ------------------------------------------------------------
 
 #include "R3BLosOnlineSpectra.h"
-#include "R3BTDCCyclicCorrector.h"
 #include "R3BEventHeader.h"
 #include "R3BLogger.h"
 #include "R3BLosCalData.h"
 #include "R3BLosMappedData.h"
 #include "R3BTCalEngine.h"
+#include "R3BTDCCyclicCorrector.h"
 
 #include "FairLogger.h"
 #include "FairRootManager.h"

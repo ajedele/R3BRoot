@@ -110,7 +110,8 @@ Double_t R3BLosProvideTStart::GetTStart() const
         if (losTriggerCalData.back()->GetTimeV_ns(0) > 0.)
         {
             R3BLOG(debug1, "CalData with VFTX trigger info for LOS");
-            return fCyclicCorrector->GetVFTXTime(losCalData.back()->GetMeanTimeVFTX() - losTriggerCalData.back()->GetTimeV_ns(0));
+            return fCyclicCorrector->GetVFTXTime(losCalData.back()->GetMeanTimeVFTX() -
+                                                 losTriggerCalData.back()->GetTimeV_ns(0));
         }
         else
         {

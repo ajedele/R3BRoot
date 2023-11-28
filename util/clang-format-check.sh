@@ -1,6 +1,7 @@
 #! /bin/bash
 test "$1" == "--autofix" && AUTOFIX=1 && shift
 test "$1" == "--ci" && AUTOFIX=1 && CI=1 && shift
+PATH=~land/fake_cvmfs/10/llvm/inst_15.07/bin/:$PATH # for lxir136 & friends.
 
 CLANG_FORMAT=${1:-clang-format}
 

@@ -23,7 +23,6 @@
 #include "FairRunOnline.h"
 #include "FairRuntimeDb.h"
 
-#include "R3BTDCCyclicCorrector.h"
 #include "R3BEventHeader.h"
 #include "R3BIncomingBeta.h"
 #include "R3BIncomingIDPar.h"
@@ -31,6 +30,7 @@
 #include "R3BLosHitData.h"
 #include "R3BSci2HitData.h"
 #include "R3BSci2TcalData.h"
+#include "R3BTDCCyclicCorrector.h"
 
 #include "TClonesArray.h"
 #include "TMath.h"
