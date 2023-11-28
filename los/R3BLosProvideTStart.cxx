@@ -13,9 +13,9 @@
 
 #include "R3BLosProvideTStart.h"
 #include "FairRootManager.h"
-#include "R3BTDCCyclicCorrector.h"
 #include "R3BEventHeader.h"
 #include "R3BLogger.h"
+#include "R3BTDCCyclicCorrector.h"
 
 R3BLosProvideTStart::R3BLosProvideTStart()
     : FairTask("R3BLosProvideTStart", 0)
@@ -96,7 +96,8 @@ Double_t R3BLosProvideTStart::GetTStart() const
         if (losTriggerCalData.back()->GetTimeV_ns(0) > 0.)
         {
             R3BLOG(debug1, "CalData with VFTX trigger info for LOS");
-            return fCyclicCorrector->GetVFTXTime(losCalData.back()->GetMeanTimeVFTX() - losTriggerCalData.back()->GetTimeV_ns(0));
+            return fCyclicCorrector->GetVFTXTime(losCalData.back()->GetMeanTimeVFTX() -
+                                                 losTriggerCalData.back()->GetTimeV_ns(0));
         }
         else
         {

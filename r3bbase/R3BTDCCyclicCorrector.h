@@ -33,10 +33,12 @@ class R3BTDCCyclicCorrector : public TObject
 
   private:
     double range{};
-    double rangeTamex = 2048 * 1000. / 200.;       // ns
-    double rangeTrb = 2048 * 1000. / 200.;         // ns
-    double rangeVftx = 8192 * 1000. / 200.;        // ns
-    double rangeClockTDC = 4096 * 1000. / 250.;    // ns - should verify with Michael which detector ran on this clock and if this frequency is correct
+    double rangeTamex = 2048 * 1000. / 200.; // ns
+    double rangeTrb = 2048 * 1000. / 200.;   // ns
+    double rangeVftx = 8192 * 1000. / 200.;  // ns
+    double rangeClockTDC =
+        4096 * 1000. /
+        250.; // ns - should verify with Michael which detector ran on this clock and if this frequency is correct
     double rangeClockTDC150 = 4096 * 1000. / 150.; // ns
     double rangeKilom = 4096 * 1000. / 150.;       // ns
 

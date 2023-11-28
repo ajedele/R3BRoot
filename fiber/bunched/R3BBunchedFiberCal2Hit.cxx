@@ -15,11 +15,11 @@
 #include "R3BBunchedFiberCalData.h"
 #include "R3BBunchedFiberHitData.h"
 #include "R3BBunchedFiberHitPar.h"
-#include "R3BTDCCyclicCorrector.h"
 #include "R3BEventHeader.h"
 #include "R3BFiberMappingPar.h"
 #include "R3BLogger.h"
 #include "R3BTCalEngine.h"
+#include "R3BTDCCyclicCorrector.h"
 
 #include "TH1F.h"
 #include "TH2F.h"
@@ -651,13 +651,13 @@ void R3BBunchedFiberCal2Hit::Standard()
             {
                 cur_cal_ns = fCyclicCorrector->GetClockTDCTime(cur_cal->GetTime_ns() - cur_cal_trig_ns);
                 lead_ns = fCyclicCorrector->GetClockTDCTime(lead->GetTime_ns() - lead_trig_ns);
-                tot_ns  = fCyclicCorrector->GetClockTDCTime(cur_cal_ns - lead_ns);
+                tot_ns = fCyclicCorrector->GetClockTDCTime(cur_cal_ns - lead_ns);
             }
             else
             {
                 cur_cal_ns = fCyclicCorrector->GetTAMEXTime(cur_cal->GetTime_ns() - cur_cal_trig_ns);
                 lead_ns = fCyclicCorrector->GetTAMEXTime(lead->GetTime_ns() - lead_trig_ns);
-                tot_ns  = fCyclicCorrector->GetTAMEXTime(cur_cal_ns - lead_ns);
+                tot_ns = fCyclicCorrector->GetTAMEXTime(cur_cal_ns - lead_ns);
             }
 
             if (side_i == 1)

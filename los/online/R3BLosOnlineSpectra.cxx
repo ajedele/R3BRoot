@@ -18,12 +18,12 @@
 // ------------------------------------------------------------
 
 #include "R3BLosOnlineSpectra.h"
-#include "R3BTDCCyclicCorrector.h"
 #include "R3BEventHeader.h"
 #include "R3BLogger.h"
 #include "R3BLosCalData.h"
 #include "R3BLosMappedData.h"
 #include "R3BTCalEngine.h"
+#include "R3BTDCCyclicCorrector.h"
 
 #include "FairLogger.h"
 #include "FairRootManager.h"
@@ -551,12 +551,16 @@ void R3BLosOnlineSpectra::Exec(Option_t* option)
         // detector 1
         if (nPartc[0] > 0)
         {
-            std::qsort(time_V_LOS1, nPartc[0], sizeof(*time_V_LOS1), [](const void* arg1, const void* arg2) -> int {
-                double const* lhs = static_cast<double const*>(arg1);
-                double const* rhs = static_cast<double const*>(arg2);
+            std::qsort(time_V_LOS1,
+                       nPartc[0],
+                       sizeof(*time_V_LOS1),
+                       [](const void* arg1, const void* arg2) -> int
+                       {
+                           double const* lhs = static_cast<double const*>(arg1);
+                           double const* rhs = static_cast<double const*>(arg2);
 
-                return (lhs[0] < rhs[0]) ? -1 : ((rhs[0] < lhs[0]) ? 1 : 0);
-            });
+                           return (lhs[0] < rhs[0]) ? -1 : ((rhs[0] < lhs[0]) ? 1 : 0);
+                       });
             for (Int_t iPart = 0; iPart < nPartc[0]; iPart++)
             {
                 for (int ipm = 0; ipm < 8; ipm++)
@@ -569,12 +573,16 @@ void R3BLosOnlineSpectra::Exec(Option_t* option)
         // detector 2
         if (fNofLosDetectors > 1 && nPartc[1] > 0)
         {
-            std::qsort(time_V_LOS2, nPartc[1], sizeof(*time_V_LOS2), [](const void* arg1, const void* arg2) -> int {
-                double const* lhs = static_cast<double const*>(arg1);
-                double const* rhs = static_cast<double const*>(arg2);
+            std::qsort(time_V_LOS2,
+                       nPartc[1],
+                       sizeof(*time_V_LOS2),
+                       [](const void* arg1, const void* arg2) -> int
+                       {
+                           double const* lhs = static_cast<double const*>(arg1);
+                           double const* rhs = static_cast<double const*>(arg2);
 
-                return (lhs[0] < rhs[0]) ? -1 : ((rhs[0] < lhs[0]) ? 1 : 0);
-            });
+                           return (lhs[0] < rhs[0]) ? -1 : ((rhs[0] < lhs[0]) ? 1 : 0);
+                       });
             for (Int_t iPart = 0; iPart < nPartc[1]; iPart++)
             {
                 for (int ipm = 0; ipm < 8; ipm++)
