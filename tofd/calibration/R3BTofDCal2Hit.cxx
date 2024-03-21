@@ -17,7 +17,6 @@
 // ------------------------------------------------------------
 
 #include "R3BTofDCal2Hit.h"
-#include "R3BCoarseTimeStitch.h"
 #include "R3BEventHeader.h"
 #include "R3BLogger.h"
 #include "R3BTCalEngine.h"

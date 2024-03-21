@@ -340,7 +340,6 @@ void R3BTofDCal2HitPar::Exec(Option_t* /*option*/)
                     auto tof_tofd = fCyclicCorrector->GetTAMEXTime((top_ns + bot_ns) / 2.);
                     auto tof_los = fCyclicCorrector->GetVFTXTime(fHeader->GetTStart());
                     auto tof = tof_tofd - tof_los;
-                    fh1_tofsync[iPlane - 1][iBar - 1]->Fill(tof - par->GetTofSyncOffset());
                 }
                 else if (fTofdQ > 0 && fParameter > 1)
                 {
