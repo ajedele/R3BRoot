@@ -34,7 +34,6 @@
 #define VFTX_CLOCK_MHZ 200
 
 class TClonesArray;
-class R3BCoarseTimeStitch;
 class TH1F;
 class TH2F;
 class R3BEventHeader;
