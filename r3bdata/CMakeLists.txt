@@ -219,6 +219,7 @@ musliData/R3BMusliMappedData.cxx
 musliData/R3BMusliCalData.cxx
 musliData/R3BMusliHitData.cxx
 synccheckData/R3BSyncCheckData.cxx
+synccheckData/R3BSyncCheckData_asyeos.cxx
 )
 
 # fill list of header files from list of source files by exchanging the file extension

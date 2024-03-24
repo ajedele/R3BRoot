@@ -1,6 +1,6 @@
 /******************************************************************************
  *   Copyright (C) 2019 GSI Helmholtzzentrum für Schwerionenforschung GmbH    *
- *   Copyright (C) 2019-2024 Members of R3B Collaboration                     *
+ *   Copyright (C) 2019-2023 Members of R3B Collaboration                     *
  *                                                                            *
  *             This software is distributed under the terms of the            *
  *                 GNU General Public Licence (GPL) version 3,                *
@@ -11,49 +11,52 @@
  * or submit itself to any jurisdiction.                                      *
  ******************************************************************************/
 
-#pragma once
+#ifndef R3BSyncCheckReader_asyeos_H
+#define R3BSyncCheckReader_asyeos_H 1
 
+#include <TClonesArray.h>
 #include "R3BReader.h"
 #include <Rtypes.h>
 
-struct EXT_STR_h101_SYNC_CHECK_t;
-typedef struct EXT_STR_h101_SYNC_CHECK_t EXT_STR_h101_SYNC_CHECK;
+struct EXT_STR_h101_SYNC_ASYEOS_t;
+typedef struct EXT_STR_h101_SYNC_ASYEOS_t EXT_STR_h101_SYNC_ASYEOS;
 class ext_data_struct_info;
 class TClonesArray;
 
-class R3BSyncCheckReader : public R3BReader
+class R3BSyncCheckReader_asyeos : public R3BReader
 {
   public:
     // Standard constructor
-    R3BSyncCheckReader(EXT_STR_h101_SYNC_CHECK*, size_t);
+    R3BSyncCheckReader_asyeos(EXT_STR_h101_SYNC_ASYEOS*, size_t);
 
     // Destructor
-    virtual ~R3BSyncCheckReader();
+    virtual ~R3BSyncCheckReader_asyeos();
 
     // Setup structure information
-    virtual bool Init(ext_data_struct_info*) override;
+    virtual Bool_t Init(ext_data_struct_info*) override;
 
     // Read data from full event structure
-    virtual bool R3BRead() override;
+    virtual Bool_t R3BRead() override;
 
     // Store data in the output tree
-    inline void SetStoreData(bool option) { fStoreData = option; }
+    void SetStoreData(Bool_t option) { fStoreData = option; }
 
     // Reset
     virtual void Reset() override;
 
   private:
     // An event counter
-    unsigned int fNEvent;
+    UInt_t fNEvent;
     // Reader specific data structure from ucesb
-    EXT_STR_h101_SYNC_CHECK* fData;
+    EXT_STR_h101_SYNC_ASYEOS* fData;
     // Offset of detector specific data in full data structure
     size_t fOffset;
     // Output array
     TClonesArray* fArray;
     // A flag to store ttree data for online
-    bool fStoreData;
+    Bool_t fStoreData;
 
   public:
-    ClassDefOverride(R3BSyncCheckReader, 0);
+    ClassDefOverride(R3BSyncCheckReader_asyeos, 0);
 };
+#endif // R3BSyncCheckReader_asyeos_H

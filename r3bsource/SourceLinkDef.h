@@ -82,6 +82,7 @@
 #pragma link C++ class R3BMwpcReader+;
 #pragma link C++ class R3BSyncCheckReader+;
 #pragma link C++ class R3BMosaicReader+;
+#pragma link C++ class R3BSyncCheckReader_asyeos+;
 
 
 #pragma link C++ class EXT_STR_h101_unpack_t;

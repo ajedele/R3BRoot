@@ -159,6 +159,7 @@ set(SRCS
 ./musli/R3BMusliReader.cxx
 ./mwpc/R3BMwpcReader.cxx
 ./sync_check/R3BSyncCheckReader.cxx
+./sync_check/R3BSyncCheckReader_asyeos.cxx
 )
 
 Set(STRUCT_HEADERS
