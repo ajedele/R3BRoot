@@ -41,7 +41,6 @@
 #include "TSystem.h"
 #include "TVirtualFitter.h"
 
-#include "../../r3bsource/tofd/mapping_tofd_trig.hh"
 
 #include <iostream>
 #include <stdlib.h>
@@ -86,9 +85,6 @@ InitStatus R3BTofDCal2HitPar_elorenz::Init()
 	fCalData = dynamic_cast<TClonesArray*>(rm->GetObject("TofdCal"));
 	R3BLOG_IF(fatal, NULL == fCalData, "TofdCal not found");
 
-	fCalTriggerItems = dynamic_cast<TClonesArray*>(rm->GetObject("TofdTriggerCal"));
-	R3BLOG_IF(fatal, NULL == fCalTriggerItems, "TofdTriggerCal not found");
-
 	//fPspxHitData = dynamic_cast<TClonesArray*>(rm->GetObject("PspxHitData"));
 	//R3BLOG_IF(fatal, NULL == fCalTriggerItems, "PspxHitData not found");
 
@@ -102,7 +98,6 @@ InitStatus R3BTofDCal2HitPar_elorenz::Init()
 	SetHistogramsNull();
 	CreateHistograms();
 
-	tofd_trig_map_setup();
 
 	printf("End of init\n");
 	return kSUCCESS;
@@ -150,18 +145,6 @@ void R3BTofDCal2HitPar_elorenz::Exec(Option_t* option)
 		vec.push_back(hit);
 	}
 
-	//Built trigger map
-	std::vector<R3BTofdCalData const*> trig_map;
-	for (int i = 0; i < fCalTriggerItems->GetEntries(); ++i)
-	{
-		auto trig = (R3BTofdCalData const*)fCalTriggerItems->At(i);
-		if (trig_map.size() < trig->GetBarId())
-		{
-			trig_map.resize(trig->GetBarId());
-		}
-		trig_map.at(trig->GetBarId() - 1) = trig;
-	}
-	
 	//std::vector<std::tuple<int,int,double>> pspxvect;
 	//for (int ihit = 0; ihit < nHits_pspx; ihit++)
 	//{
@@ -169,7 +152,6 @@ void R3BTofDCal2HitPar_elorenz::Exec(Option_t* option)
 	//	pspxvect.push_back(make_tuple(hit->GetDetector(), hit->GetFace(), hit->GetEnergy()));
 	//}
 
-	auto trig_num = fCalTriggerItems->GetEntriesFast();
 	// Find coincident PMT hits.
 	for (auto it = bar_map.begin(); bar_map.end() != it; ++it)
 	{
@@ -182,35 +164,12 @@ void R3BTofDCal2HitPar_elorenz::Exec(Option_t* option)
 			auto top = top_vec.at(top_i);
 			auto bot = bot_vec.at(bot_i);
 
-			int top_trig_i = g_tofd_trig_map[top->GetDetectorId()-1][top->GetBarId()-1][top->GetSideId()-1];
-			int bot_trig_i = g_tofd_trig_map[bot->GetDetectorId()-1][bot->GetBarId()-1][bot->GetSideId()-1];
-
-			printf("Trig_top: %d, trig_bot: %d\n",g_tofd_trig_map[top->GetDetectorId()-1][top->GetBarId()-1][top->GetSideId()-1],g_tofd_trig_map[bot->GetDetectorId()-1][bot->GetBarId()-1][bot->GetSideId()-1]);
-
-			double top_trig_ns = 0, bot_trig_ns = 0;
-			if (top_trig_i < trig_map.size() && trig_map.at(top_trig_i) && bot_trig_i < trig_map.size() && trig_map.at(bot_trig_i))
-			{
-				auto top_trig = trig_map.at(top_trig_i);
-				auto bot_trig = trig_map.at(bot_trig_i);
-				top_trig_ns = top_trig->GetTimeLeading_ns();
-				bot_trig_ns = bot_trig->GetTimeLeading_ns();
-			}
-			else
-			{
-				static bool s_was_trig_missing = false;
-				if (!s_was_trig_missing)
-				{
-					R3BLOG(error, "Missing trigger information!");
-					s_was_trig_missing = true;
-				}
-			}
 
 			// Shift the cyclic difference window by half a window-length and move it back,
-			// this way the trigger time will be at 0.
 			auto top_ns =
-				fmod(top->GetTimeLeading_ns() - top_trig_ns + c_range_ns + c_range_ns / 2, c_range_ns) - c_range_ns / 2;
+				fmod(top->GetTimeLeading_ns() + c_range_ns + c_range_ns / 2, c_range_ns) - c_range_ns / 2;
 			auto bot_ns =
-				fmod(bot->GetTimeLeading_ns() - bot_trig_ns + c_range_ns + c_range_ns / 2, c_range_ns) - c_range_ns / 2;
+				fmod(bot->GetTimeLeading_ns() + c_range_ns + c_range_ns / 2, c_range_ns) - c_range_ns / 2;
 
 			auto dt = top_ns - bot_ns;
 			if (std::abs(dt) < c_bar_coincidence_ns)
@@ -238,7 +197,6 @@ void R3BTofDCal2HitPar_elorenz::Exec(Option_t* option)
 
 				//First step - 
 				//Energy calibration: calculates geometric mean of ToT1 and ToT2
-				//Timing calibration: calculates average time between top and bottom leading edges - trigger subtracted
 				//Use y = center sweep run for this
 				if (fParameter == 1)
 				{

@@ -41,10 +41,12 @@ void TofdCal2HitPar(const int RunId, int nev, int fParameter)
 	if(fParameter==1)
 	{
 		inputpar = "";
-		outputpar = Form("%sparameter/tofd_HitPar_s473_sweep191.root", path3.Data());
+		//outputpar = Form("%sparameter/tofd_HitPar_s473_sweep191.root", path3.Data());
+		outputpar = Form("%sparameter/tofd_test.root", path3.Data());
 		filename  = Form("%sTofdTCal0190_Test.root", path1.Data());
 		filename1 = Form("%sTofdTCal0191_Test.root", path1.Data());
-		outputFileName = Form("%sTofdHitPar0191_Test.root", path1.Data());
+		outputFileName = Form("%sTofdTest.root", path1.Data());
+		//outputFileName = Form("%sTofdHitPar0191_Test.root", path1.Data());
 	}
 	else if(fParameter==2)
 	{

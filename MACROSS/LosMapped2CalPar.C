@@ -43,7 +43,7 @@ void LosMapped2CalPar(int RunId)
 	TString filename;
 	//if (RunId == 190 || RunId == 191) filename = path1 + "main0191_*.lmd " + path1 + "main0190_*.lmd  --allow-errors --input-buffer=47Mi";
 	//else filename = path1 + "main" + runNumber1 + "_*.lmd --allow-errors --input-buffer=47Mi";
-	filename = path1 + "losrolu_" + runNumber1 + ".lmd --allow-errors --input-buffer=47Mi";
+	filename = path2 + "losrolu_" + runNumber1 + ".lmd --allow-errors --input-buffer=47Mi";
 	printf("Input Filename: %s\n", filename.Data());
 	TString outputFileName = path2 + "LosTCalPar" + runNumber1 + "_Test.root";
 	cout << "Input file is" << filename << endl;
@@ -84,7 +84,7 @@ void LosMapped2CalPar(int RunId)
 	const int minStats = 100;
 
 	R3BLosMapped2CalPar* losMapped2CalPar = new R3BLosMapped2CalPar("R3BLosMapped2CalPar", 1);
-	losMapped2CalPar->SetNofModules(4,44);
+	losMapped2CalPar->SetNofModules(1,8);
 	run->AddTask(losMapped2CalPar);
 
 	run->Init();
