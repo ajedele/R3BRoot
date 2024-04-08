@@ -11,8 +11,7 @@
  * or submit itself to any jurisdiction.                                      *
  ******************************************************************************/
 
-#ifndef R3BTDCCyclicCorrector_H
-#define R3BTDCCyclicCorrector_H 1
+#pragma once
 
 #include <Rtypes.h>
 #include <TObject.h>

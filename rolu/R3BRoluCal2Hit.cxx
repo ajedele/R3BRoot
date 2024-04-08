@@ -149,7 +149,6 @@ void R3BRoluCal2Hit::Exec(Option_t* option)
 
     int nTrig = 0;
     double lead_trig_ns = 0. / 0.;
-<<<<<<< HEAD
     // Calibrate the trigger
     if (fSkipTrigger == false)
     {
@@ -164,22 +163,6 @@ void R3BRoluCal2Hit::Exec(Option_t* option)
 
     int nParts = fCalItems->GetEntriesFast();
 
-=======
-    //Calibrate the trigger
-    if (fSkipTrigger == false)
-    {
-    	nTrig = fCalTriggerItems->GetEntriesFast();
-    	for (unsigned int j = 0; j < nTrig; ++j)
-    	{
-    	    auto cur_cal = dynamic_cast<R3BRoluCalData*>(fCalTriggerItems->At(j));
-    	    lead_trig_ns = cur_cal->GetTimeL_ns(0);
-    	    // cout<<"Trigger: "<<lead_trig_ns<<endl;
-    	}
-    }
-    
-    int nParts = fCalItems->GetEntriesFast();
-
->>>>>>> rolu
     if (nParts < 1 || nTrig < 1) return;
 
     int iDet = 0;
@@ -194,11 +177,7 @@ void R3BRoluCal2Hit::Exec(Option_t* option)
 
     for (int iPart = 0; iPart < nParts; iPart++)
     {
-<<<<<<< HEAD
         // Parts is the number of particle passing through detector in one event
-=======
-        //Parts is the number of particle passing through detector in one event
->>>>>>> rolu
         R3BRoluCalData* calItem = dynamic_cast<R3BRoluCalData*>(fCalItems->At(iPart));
         iDet = calItem->GetDetector();
 
@@ -225,13 +204,9 @@ void R3BRoluCal2Hit::Exec(Option_t* option)
                 totRolu[iPart][iDet - 1][iCha] = timeRolu_T[iPart][iDet - 1][iCha] - timeRolu_L[iPart][iDet - 1][iCha];
             }
 
-<<<<<<< HEAD
             double time_to_trig =
                 fmod(timeRolu_L[iPart][iDet - 1][iCha] - lead_trig_ns + c_period + c_period / 2, c_period) -
                 c_period / 2;
-=======
-            double time_to_trig = fmod(timeRolu_L[iPart][iDet - 1][iCha] - lead_trig_ns + c_period + c_period/2, c_period) - c_period / 2;
->>>>>>> rolu
 
             // cout<<"ROLU cal2hit: "<<iDet<<", "<<iCha+1<<"; "<<timeRolu_L[iPart][iDet - 1][iCha]<<",
             // "<<totRolu[iPart][iDet - 1][iCha]<<endl;

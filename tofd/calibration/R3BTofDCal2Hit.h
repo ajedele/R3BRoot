@@ -140,7 +140,7 @@ class R3BTofDCal2Hit : public FairTask
      */
     double walk(double Q, double par1, double par2, double par3, double par4, double par5);
 
-    R3BTDCCyclicCorrector* fTDCCyclicCorrector{};
+    R3BTDCCyclicCorrector* fCyclicCorrector{};
     R3BEventHeader* header{}; /**< Event header - input data. */
     R3BTofDHitPar* fHitPar{}; /**< Hit parameter container. */
     R3BTofDMappingPar* fMapPar{};

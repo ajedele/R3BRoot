@@ -706,7 +706,7 @@ InitStatus R3BTofDOnlineSpectra::Init()
     run->GetHttpServer()->RegisterCommand("Reset_TofD_HIST", Form("/Objects/%s/->Reset_Histo()", GetName()));
 
     // Definition of a time stich object to correlate times coming from different systems
-    fCyclicCorrector = new R3BTDCCyclicCorrector();
+    fCyclicCorrector = std::make_unique<R3BTDCCyclicCorrector>();
 
     return kSUCCESS;
 }
@@ -856,9 +856,9 @@ void R3BTofDOnlineSpectra::Exec(Option_t* option)
     std::vector<double> fTof_without_trig(44, 0.);
     if (fCalItems)
     {
-        Uint vmultihits[fNofPlanes + 1][fPaddlesPerPlane];
-        Uint vmultihits_top[fNofPlanes + 1][fPaddlesPerPlane];
-        Uint vmultihits_bot[fNofPlanes + 1][fPaddlesPerPlane];
+        uint32_t vmultihits[fNofPlanes + 1][fPaddlesPerPlane];
+        uint32_t vmultihits_top[fNofPlanes + 1][fPaddlesPerPlane];
+        uint32_t vmultihits_bot[fNofPlanes + 1][fPaddlesPerPlane];
         double time_bar[fNofPlanes + 1][fPaddlesPerPlane][fMaxmul];
         for (int i = 0; i < fNofPlanes + 1; i++)
         {

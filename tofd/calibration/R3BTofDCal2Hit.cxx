@@ -139,7 +139,7 @@ InitStatus R3BTofDCal2Hit::Init()
     {
         for (int i = 1; i <= fNofPlanes; i++)
             for (int j = 1; j <= N_TOFD_HIT_PADDLE_MAX; j++)
-                CreateHistograms(i, j);
+                CreateHistograms();
     }
 
     // Definition of a time stich object to correlate times coming from different systems
@@ -206,7 +206,7 @@ void R3BTofDCal2Hit::Exec(Option_t* option)
     double timeP0 = 0.;
     double randx;
 
-    Uint vmultihits[N_PLANE_MAX + 1][N_TOFD_HIT_PADDLE_MAX + 1];
+    uint32_t vmultihits[N_PLANE_MAX + 1][N_TOFD_HIT_PADDLE_MAX + 1];
     for (int i = 0; i <= fNofPlanes; i++)
     {
         for (int j = 0; j <= N_TOFD_HIT_PADDLE_MAX; j++)
@@ -309,8 +309,6 @@ void R3BTofDCal2Hit::Exec(Option_t* option)
                 auto bot_trig = trig_map.at(bot_trig_i);
                 top_trig_ns = top_trig->GetTimeLeading_ns();
                 bot_trig_ns = bot_trig->GetTimeLeading_ns();
-
-                ++n1;
             }
             else
             {
@@ -321,7 +319,6 @@ void R3BTofDCal2Hit::Exec(Option_t* option)
                     R3BLOG(error, "Bot: " << bot->GetDetectorId() << ' ' << bot->GetSideId() << ' ' << bot->GetBarId());
                     s_was_trig_missing = true;
                 }
-                ++n2;
             }
 
             // Shift the cyclic difference window by half a window-length and move it back,
@@ -507,13 +504,11 @@ void R3BTofDCal2Hit::Exec(Option_t* option)
 
                 // Tof with respect LOS detector
                 auto tof = fCyclicCorrector->GetTAMEXTime((bot_ns + top_ns) / 2. - header->GetTStart());
-                // auto tof_corr = par->GetTofSyncOffset() + par->GetTofSyncSlope() * tof;
-                auto tof_corr = tof - par->GetTofSyncOffset();
 
                 // if (parz[1] > 0)
                 // {
                 event.push_back(
-                    { parz[0] + parz[1] * qb + parz[2] * qb * qb, THit, xp, pos, iPlane, iBar, THit_raw, tof_corr });
+                    { parz[0] + parz[1] * qb + parz[2] * qb * qb, THit, xp, pos, iPlane, iBar, THit });
                 // }
 
                 /* if (parz[0] > 0 && parz[2] > 0)

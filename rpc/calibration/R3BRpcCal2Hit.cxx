@@ -180,9 +180,6 @@ void R3BRpcCal2Hit::Exec(Option_t* opt)
             auto tof_rpc = fCyclicCorrector->GetTRBTime(time);
             auto tof_los = fCyclicCorrector->GetVFTXTime(fR3BEventHeader->GetTStart());
             auto tof = tof_rpc - tof_los;
-            auto tof_rpc = fCyclicCorrector->GetTRBTime(time);
-            auto tof_los = fCyclicCorrector->GetVFTXTime(fR3BEventHeader->GetTStart());
-            auto tof = tof_rpc - tof_los;
 
             AddHitStrip(iDetector, map1->GetChannelId(), time, position, charge, tof);
         }

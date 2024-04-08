@@ -124,7 +124,7 @@ class R3BLosTCal2Hit : public FairTask
      */
     inline void SetTrigger(int trigger) { fTrigger = trigger; }
     inline void SetTpat(int tpat) { fTpat = tpat; }
-    inline void SetNofDet(Uint nDets) { fNofDetectors = nDets; }
+    inline void SetNofDet(uint32_t nDets) { fNofDetectors = nDets; }
 
     /**
      * Method for walk calculation.
@@ -164,9 +164,9 @@ class R3BLosTCal2Hit : public FairTask
 
     int fNumParamsTamexLE;
     int fNumParamsTamexTE;
-    Uint fNofDetectors; /**< Number of detectors. */
+    uint32_t fNofDetectors; /**< Number of detectors. */
 
-    Uint fNofHitItems; /**< Number of hit items for cur event. */
+    uint32_t fNofHitItems; /**< Number of hit items for cur event. */
     double fClockFreq; /**< Clock cycle in [ns]. */
     double fWindowV;   // VFTX coincidence window in ns
     double flosVeffX;

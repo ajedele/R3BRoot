@@ -33,26 +33,26 @@ class R3BMusliReader : public R3BReader
     virtual ~R3BMusliReader();
 
     // Setup structure information
-    virtual Bool_t Init(ext_data_struct_info*) override;
+    virtual bool Init(ext_data_struct_info*) override;
 
     // Read data from full event structure
-    virtual Bool_t Read() override;
+    virtual bool R3BRead() override;
 
     // Reset
     virtual void Reset() override;
 
     // Accessor to select online mode
-    void SetOnline(Bool_t option) { fOnline = option; }
+    void SetOnline(bool option) { fOnline = option; }
 
   private:
-    Bool_t ReadData(EXT_STR_h101_MUSLI_onion*);
+    bool ReadData(EXT_STR_h101_MUSLI_onion*);
 
     /* Reader specific data structure from ucesb */
     EXT_STR_h101_MUSLI* fData;
     /* Data offset */
     size_t fOffset;
     // Don't store data for online
-    Bool_t fOnline;
+    bool fOnline;
     /* the structs of type R3BMusliMappedData Item */
     TClonesArray* fArray; /**< Output array. */
 
