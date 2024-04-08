@@ -36,7 +36,6 @@
 #include <FairRuntimeDb.h>
 
 // R3B headers
-#include "R3BCoarseTimeStitch.h"
 #include "R3BEventHeader.h"
 #include "R3BLogger.h"
 #include "R3BShared.h"
@@ -1095,9 +1094,9 @@ void R3BTofDOnlineSpectra::Exec(Option_t* option)
                     if (topc->GetTimeLeading_ns() > 0 && header->GetTStartSimple() > 0)
                     {
                         auto tof_without_trig_top =
-                            fTimeStitch->GetTime(topc->GetTimeLeading_ns() - header->GetTStartSimple());
+                            fCyclicCorrector->GetTAMEXTime(topc->GetTimeLeading_ns() - header->GetTStartSimple());
                         auto tof_without_trig_bot =
-                            fTimeStitch->GetTime(botc->GetTimeLeading_ns() - header->GetTStartSimple());
+                            fCyclicCorrector->GetTAMEXTime(botc->GetTimeLeading_ns() - header->GetTStartSimple());
                         auto mean_tof_trig = (tof_without_trig_top + tof_without_trig_bot) / 2.;
                         if (iPlane == 1)
                         {
