@@ -18,12 +18,12 @@
 // ------------------------------------------------------------
 
 #include "R3BLosOnlineSpectra.h"
-#include "R3BCoarseTimeStitch.h"
 #include "R3BEventHeader.h"
 #include "R3BLogger.h"
 #include "R3BLosCalData.h"
 #include "R3BLosMappedData.h"
 #include "R3BTCalEngine.h"
+#include "R3BTDCCyclicCorrector.h"
 
 #include "FairLogger.h"
 #include "FairRootManager.h"
@@ -52,7 +52,7 @@ R3BLosOnlineSpectra::R3BLosOnlineSpectra(const char* name, Int_t iVerbose)
     , fTpat(-1)
     , fClockFreq(1. / VFTX_CLOCK_MHZ * 1000.)
     , fNEvents(0)
-    , fTimeStitch(nullptr)
+    , fCyclicCorrector(nullptr)
 {
 }
 
@@ -295,7 +295,7 @@ InitStatus R3BLosOnlineSpectra::Init()
     }
 
     // Definition of a time stich object to correlate times coming from different systems
-    fTimeStitch = new R3BCoarseTimeStitch();
+    fCyclicCorrector = new R3BTDCCyclicCorrector();
 
     return kSUCCESS;
 }
@@ -753,8 +753,9 @@ void R3BLosOnlineSpectra::Exec(Option_t* option)
                             timeLosT[iDet - 1][iPart] = timeLosT[iDet - 1][iPart] - 2048. * 5.;
                         }
 
-                        fh_los_vftx_tamex[iDet - 1]->Fill(fTimeStitch->GetTime(
-                            timeLosT[iDet - 1][iPart] - timeLosV[iDet - 1][iPart], "tamex", "vftx"));
+                        auto LosT_time = fCyclicCorrector->GetTAMEXTime(timeLosT[iDet - 1][iPart]);
+                        auto LosV_time = fCyclicCorrector->GetVFTXTime(timeLosV[iDet - 1][iPart]);
+                        fh_los_vftx_tamex[iDet - 1]->Fill(timeLosT - timeLosV);
                     }
 
                     fh_losMCFD_vs_Events[iDet - 1]->Fill(fNEvents, LosTresV[iDet - 1][iPart]);

@@ -21,16 +21,16 @@
 #pragma once
 
 #ifndef __CINT__
-#include <stdint.h>
+# include <stdint.h>
 #else
 /* For CINT (old version trouble with stdint.h): */
-#ifndef uint32_t
+# ifndef uint32_t
 typedef unsigned int uint32_t;
-typedef int int32_t;
-#endif
+typedef          int  int32_t;
+# endif
 #endif
 #ifndef EXT_STRUCT_CTRL
-#define EXT_STRUCT_CTRL(x)
+# define EXT_STRUCT_CTRL(x)
 #endif
 
 /********************************************************

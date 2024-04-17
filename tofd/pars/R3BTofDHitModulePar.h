@@ -37,7 +37,7 @@ class R3BTofDHitModulePar : public FairParGenericSet
     R3BTofDHitModulePar(const char* name = "TofdHitModulePar",
                         const char* title = "TOFd hit calibration of a module",
                         const char* context = "TestDefaultContext",
-                        Bool_t own = kTRUE);
+                        bool own = kTRUE);
 
     /**
      * Destructor.
@@ -61,7 +61,7 @@ class R3BTofDHitModulePar : public FairParGenericSet
      * @param list a list of parameters.
      * @return kTRUE if successfull, else kFALSE.
      */
-    Bool_t getParams(FairParamList* list);
+    bool getParams(FairParamList* list);
 
     /**
      * A method to print value of parameters to the standard
@@ -69,89 +69,81 @@ class R3BTofDHitModulePar : public FairParGenericSet
      */
     void printParams();
 
-    /**
-     * A method to draw vaues of parameters on the current Canvas.
-     */
-    void DrawParams();
-
     /** Accessor functions **/
-    Int_t GetPlane() const { return fPlane; }
-    Int_t GetPaddle() const { return fPaddle; }
-    Double_t GetSync() const { return fSync; }
-    Double_t GetTofSyncOffset() const { return fTofSyncOffset; }
-    Double_t GetOffset1() const { return fOffset1; }
-    Double_t GetOffset2() const { return fOffset2; }
-    Double_t GetToTOffset1() const { return fToTOffset1; }
-    Double_t GetToTOffset2() const { return fToTOffset2; }
-    Double_t GetVeff() const { return fVeff; }
-    Double_t GetLambda() const { return fLambda; }
-    Double_t GetPar1a() const { return fPar1a; }
-    Double_t GetPar1b() const { return fPar1b; }
-    Double_t GetPar1c() const { return fPar1c; }
-    Double_t GetPar1d() const { return fPar1d; }
-    Double_t GetPar2a() const { return fPar2a; }
-    Double_t GetPar2b() const { return fPar2b; }
-    Double_t GetPar2c() const { return fPar2c; }
-    Double_t GetPar2d() const { return fPar2d; }
-    Double_t GetPola() const { return fPola; }
-    Double_t GetPolb() const { return fPolb; }
-    Double_t GetPolc() const { return fPolc; }
-    Double_t GetPold() const { return fPold; }
-    Double_t GetPar1za() const { return fPar1za; }
-    Double_t GetPar1zb() const { return fPar1zb; }
-    Double_t GetPar1zc() const { return fPar1zc; }
-    Double_t GetPar1Walk() const { return fPar1walk; }
-    Double_t GetPar2Walk() const { return fPar2walk; }
-    Double_t GetPar3Walk() const { return fPar3walk; }
-    Double_t GetPar4Walk() const { return fPar4walk; }
-    Double_t GetPar5Walk() const { return fPar5walk; }
-    void SetPlane(Int_t i) { fPlane = i; }
-    void SetPaddle(Int_t i) { fPaddle = i; }
-    void SetSync(Double_t t) { fSync = t; }
-    void SetTofSyncOffset(Double_t t) { fTofSyncOffset = t; }
-    void SetOffset1(Double_t t) { fOffset1 = t; }
-    void SetOffset2(Double_t t) { fOffset2 = t; }
-    void SetToTOffset1(Double_t t) { fToTOffset1 = t; }
-    void SetToTOffset2(Double_t t) { fToTOffset2 = t; }
-    void SetVeff(Double_t v) { fVeff = v; }
-    void SetLambda(Double_t v) { fLambda = v; }
-    void SetPar1a(Double_t par1a) { fPar1a = par1a; }
-    void SetPar1b(Double_t par1b) { fPar1b = par1b; }
-    void SetPar1c(Double_t par1c) { fPar1c = par1c; }
-    void SetPar1d(Double_t par1d) { fPar1d = par1d; }
-    void SetPar2a(Double_t par2a) { fPar2a = par2a; }
-    void SetPar2b(Double_t par2b) { fPar2b = par2b; }
-    void SetPar2c(Double_t par2c) { fPar2c = par2c; }
-    void SetPar2d(Double_t par2d) { fPar2d = par2d; }
-    void SetPola(Double_t pola) { fPola = pola; }
-    void SetPolb(Double_t polb) { fPolb = polb; }
-    void SetPolc(Double_t polc) { fPolc = polc; }
-    void SetPold(Double_t pold) { fPold = pold; }
-    void SetPar1za(Double_t par1za) { fPar1za = par1za; }
-    void SetPar1zb(Double_t par1zb) { fPar1zb = par1zb; }
-    void SetPar1zc(Double_t par1zc) { fPar1zc = par1zc; }
-    void SetPar1Walk(Double_t par1Walk) { fPar1walk = par1Walk; }
-    void SetPar2Walk(Double_t par2Walk) { fPar2walk = par2Walk; }
-    void SetPar3Walk(Double_t par3Walk) { fPar3walk = par3Walk; }
-    void SetPar4Walk(Double_t par4Walk) { fPar4walk = par4Walk; }
-    void SetPar5Walk(Double_t par5Walk) { fPar5walk = par5Walk; }
+    int GetPlane() const { return fPlane; }
+    int GetPaddle() const { return fPaddle; }
+    double GetSync() const { return fSync; }
+    double GetOffset1() const { return fOffset1; }
+    double GetOffset2() const { return fOffset2; }
+    double GetToTOffset1() const { return fToTOffset1; }
+    double GetToTOffset2() const { return fToTOffset2; }
+    double GetVeff() const { return fVeff; }
+    double GetLambda() const { return fLambda; }
+    double GetPar1a() const { return fPar1a; }
+    double GetPar1b() const { return fPar1b; }
+    double GetPar1c() const { return fPar1c; }
+    double GetPar1d() const { return fPar1d; }
+    double GetPar2a() const { return fPar2a; }
+    double GetPar2b() const { return fPar2b; }
+    double GetPar2c() const { return fPar2c; }
+    double GetPar2d() const { return fPar2d; }
+    double GetPola() const { return fPola; }
+    double GetPolb() const { return fPolb; }
+    double GetPolc() const { return fPolc; }
+    double GetPold() const { return fPold; }
+    double GetPar1za() const { return fPar1za; }
+    double GetPar1zb() const { return fPar1zb; }
+    double GetPar1zc() const { return fPar1zc; }
+    double GetPar1Walk() const { return fPar1walk; }
+    double GetPar2Walk() const { return fPar2walk; }
+    double GetPar3Walk() const { return fPar3walk; }
+    double GetPar4Walk() const { return fPar4walk; }
+    double GetPar5Walk() const { return fPar5walk; }
+    void SetPlane(int i) { fPlane = i; }
+    void SetPaddle(int i) { fPaddle = i; }
+    void SetSync(double t) { fSync = t; }
+    void SetOffset1(double t) { fOffset1 = t; }
+    void SetOffset2(double t) { fOffset2 = t; }
+    void SetToTOffset1(double t) { fToTOffset1 = t; }
+    void SetToTOffset2(double t) { fToTOffset2 = t; }
+    void SetVeff(double v) { fVeff = v; }
+    void SetLambda(double v) { fLambda = v; }
+    void SetPar1a(double par1a) { fPar1a = par1a; }
+    void SetPar1b(double par1b) { fPar1b = par1b; }
+    void SetPar1c(double par1c) { fPar1c = par1c; }
+    void SetPar1d(double par1d) { fPar1d = par1d; }
+    void SetPar2a(double par2a) { fPar2a = par2a; }
+    void SetPar2b(double par2b) { fPar2b = par2b; }
+    void SetPar2c(double par2c) { fPar2c = par2c; }
+    void SetPar2d(double par2d) { fPar2d = par2d; }
+    void SetPola(double pola) { fPola = pola; }
+    void SetPolb(double polb) { fPolb = polb; }
+    void SetPolc(double polc) { fPolc = polc; }
+    void SetPold(double pold) { fPold = pold; }
+    void SetPar1za(double par1za) { fPar1za = par1za; }
+    void SetPar1zb(double par1zb) { fPar1zb = par1zb; }
+    void SetPar1zc(double par1zc) { fPar1zc = par1zc; }
+    void SetPar1Walk(double par1Walk) { fPar1walk = par1Walk; }
+    void SetPar2Walk(double par2Walk) { fPar2walk = par2Walk; }
+    void SetPar3Walk(double par3Walk) { fPar3walk = par3Walk; }
+    void SetPar4Walk(double par4Walk) { fPar4walk = par4Walk; }
+    void SetPar5Walk(double par5Walk) { fPar5walk = par5Walk; }
 
   private:
-    Int_t fPlane;                            /**< Index of a plane. */
-    Int_t fPaddle;                           /**< Index of a paddle. */
-    Double_t fOffset1;                       /**< time offset of PM1 */
-    Double_t fOffset2;                       /**< time offset of PM2 */
-    Double_t fToTOffset1;                    /**< ToT offset of PM1 */
-    Double_t fToTOffset2;                    /**< ToT offset of PM2 */
-    Double_t fVeff;                          /**< effective velocity of light in paddle for position determination */
-    Double_t fLambda;                        /**< light attenuation in paddle for position determination */
-    Double_t fSync;                          /**< time offset between paddles */
-    Double_t fTofSyncOffset;                 /**< tof alignment with respect to the start detector */
-    Double_t fPar1a, fPar1b, fPar1c, fPar1d; /**< double exponential parameters for position dependent charge */
-    Double_t fPar2a, fPar2b, fPar2c, fPar2d; /**< double exponential parameters for position dependent charge */
-    Double_t fPola, fPolb, fPolc, fPold;     /**< polynomial parameters for position dependent charge */
-    Double_t fPar1za, fPar1zb, fPar1zc, fPar1zd;                    /**< quench correction parameters */
-    Double_t fPar1walk, fPar2walk, fPar3walk, fPar4walk, fPar5walk; /**< walk correction parameters */
+    int fPlane;                            /**< Index of a plane. */
+    int fPaddle;                           /**< Index of a paddle. */
+    double fOffset1;                       /**< time offset of PM1 */
+    double fOffset2;                       /**< time offset of PM2 */
+    double fToTOffset1;                    /**< ToT offset of PM1 */
+    double fToTOffset2;                    /**< ToT offset of PM2 */
+    double fVeff;                          /**< effective velocity of light in paddle for position determination */
+    double fLambda;                        /**< light attenuation in paddle for position determination */
+    double fSync;                          /**< time offset between paddles */
+    double fPar1a, fPar1b, fPar1c, fPar1d; /**< double exponential parameters for position dependent charge */
+    double fPar2a, fPar2b, fPar2c, fPar2d; /**< double exponential parameters for position dependent charge */
+    double fPola, fPolb, fPolc, fPold;     /**< polynomial parameters for position dependent charge */
+    double fPar1za, fPar1zb, fPar1zc, fPar1zd;                    /**< quench correction parameters */
+    double fPar1walk, fPar2walk, fPar3walk, fPar4walk, fPar5walk; /**< walk correction parameters */
 
   public:
     ClassDef(R3BTofDHitModulePar, 3);

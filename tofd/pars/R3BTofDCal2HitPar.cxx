@@ -12,9 +12,9 @@
  ******************************************************************************/
 
 #include "R3BTofDCal2HitPar.h"
-#include "R3BCoarseTimeStitch.h"
 #include "R3BEventHeader.h"
 #include "R3BLogger.h"
+#include "R3BTDCCyclicCorrector.h"
 #include "R3BTofDHitModulePar.h"
 #include "R3BTofDHitPar.h"
 #include "R3BTofDMappingPar.h"
@@ -98,8 +98,6 @@ R3BTofDCal2HitPar::~R3BTofDCal2HitPar()
                 delete fhTot1vsPos[i][j];
             if (fhTot2vsPos[i][j])
                 delete fhTot2vsPos[i][j];
-            if (fh1_tofsync[i][j])
-                delete fh1_tofsync[i][j];
         }
     }
     if (fHitPar)
@@ -139,7 +137,7 @@ InitStatus R3BTofDCal2HitPar::Init()
             CreateHistograms(i, j);
 
     // Definition of a time stich object to correlate times coming from different systems
-    fTimeStitch = std::make_unique<R3BCoarseTimeStitch>();
+    fCyclicCorrector = std::make_unique<R3BTDCCyclicCorrector>();
 
     return kSUCCESS;
 }
@@ -237,8 +235,8 @@ void R3BTofDCal2HitPar::Exec(Option_t* /*option*/)
 
             // Shift the cyclic difference window by half a window-length and move it back,
             // this way the trigger time will be at 0.
-            auto top_ns = fTimeStitch->GetTime(top->GetTimeLeading_ns() - top_trig_ns);
-            auto bot_ns = fTimeStitch->GetTime(bot->GetTimeLeading_ns() - bot_trig_ns);
+            auto top_ns = fCyclicCorrector->GetTAMEXTime(top->GetTimeLeading_ns() - top_trig_ns);
+            auto bot_ns = fCyclicCorrector->GetTAMEXTime(bot->GetTimeLeading_ns() - bot_trig_ns);
             auto dt = top_ns - bot_ns;
             // Handle wrap-around.
             auto dt_mod = fmod(dt + c_range_ns, c_range_ns);
@@ -291,7 +289,7 @@ void R3BTofDCal2HitPar::Exec(Option_t* /*option*/)
                     fhTsync[iPlane - 1]->Fill(iBar, THit);
 
                     // Tof with respect LOS detector
-                    auto tof = fTimeStitch->GetTime((top_ns + bot_ns) / 2. - fHeader->GetTStart(), "tamex", "vftx");
+                    auto tof = fCyclicCorrector->GetTAMEXTime((top_ns + bot_ns) / 2. - fHeader->GetTStart());
                     fh1_tofsync[iPlane - 1][iBar - 1]->Fill(tof);
                     // std::cout << "top" << top_ns << " bot"<<bot_ns << " start" << header->GetTStart() << std::endl;
                 }
@@ -338,8 +336,9 @@ void R3BTofDCal2HitPar::Exec(Option_t* /*option*/)
                     fhTsync[iPlane - 1]->Fill(iBar, THit);
 
                     // Tof with respect LOS detector
-                    auto tof = fTimeStitch->GetTime((top_ns + bot_ns) / 2. - fHeader->GetTStart(), "tamex", "vftx");
-                    fh1_tofsync[iPlane - 1][iBar - 1]->Fill(tof - par->GetTofSyncOffset());
+                    auto tof_tofd = fCyclicCorrector->GetTAMEXTime((top_ns + bot_ns) / 2.);
+                    auto tof_los = fCyclicCorrector->GetVFTXTime(fHeader->GetTStart());
+                    auto tof = tof_tofd - tof_los;
                 }
                 else if (fTofdQ > 0 && fParameter > 1)
                 {
@@ -561,13 +560,6 @@ void R3BTofDCal2HitPar::CreateHistograms(Int_t iPlane, Int_t iBar)
         fhTot2vsPos[iPlane - 1][iBar - 1] = new TH2F(strName, "", 200, -100, 100, 400, 0., 200.);
         fhTot2vsPos[iPlane - 1][iBar - 1]->GetXaxis()->SetTitle("Pos in cm");
         fhTot2vsPos[iPlane - 1][iBar - 1]->GetYaxis()->SetTitle("ToT of PM2 in ns");
-    }
-    if (fh1_tofsync[iPlane - 1][iBar - 1] == NULL)
-    {
-        char strName[255];
-        sprintf(strName, "tofdiff_plane_%d_bar_%d", iPlane, iBar);
-        fh1_tofsync[iPlane - 1][iBar - 1] = new TH1F(strName, strName, 5000, -250, -100);
-        fh1_tofsync[iPlane - 1][iBar - 1]->GetXaxis()->SetTitle("ToF [ns]");
     }
 }
 
@@ -1136,22 +1128,6 @@ void R3BTofDCal2HitPar::FinishTask()
         calcSync();
         LOG(error) << "Call walk correction before next step!";
 
-        for (Int_t i = 0; i < fNofPlanes; i++)
-        {
-            for (Int_t j = 0; j < fPaddlesPerPlane; j++)
-            {
-                auto par = fHitPar->GetModuleParAt(i + 1, j + 1);
-                Int_t binmax = fh1_tofsync[i][j]->GetMaximumBin();
-                auto tofsync = fh1_tofsync[i][j]->GetXaxis()->GetBinCenter(binmax);
-
-                TF1* fgauss = new TF1("fgaus", "gaus(0)", tofsync - 0.25, tofsync + 0.25);
-                fh1_tofsync[i][j]->Fit("fgaus", "QR");
-                auto tof_offset = fgauss->GetParameter(1);
-
-                par->SetTofSyncOffset(tof_offset - fMeanTof);
-                LOG(info) << " Plane  " << i + 1 << " Bar " << j + 1 << " Tof-Sync  " << tof_offset;
-            }
-        }
     }
     else if (fParameter == 2)
     {
@@ -1277,8 +1253,6 @@ void R3BTofDCal2HitPar::FinishTask()
             fhTdiff[i]->Write(); // histogram for offset and veff calculation
         for (Int_t j = 0; j < N_TOFD_HIT_PADDLE_MAX; j++)
         {
-            if (fh1_tofsync[i][j])
-                fh1_tofsync[i][j]->Write(); // histogram for ToF sync calculation
             if (fhLogTot1vsLogTot2[i][j])
                 fhLogTot1vsLogTot2[i][j]->Write(); // control histogram Log(ToT) Pm1 vs Log(ToT) Pm2
             if (fhSqrtQvsPosToT[i][j])

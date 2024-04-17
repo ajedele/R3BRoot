@@ -15,11 +15,13 @@
 #define R3BPSPXREADER_H
 
 #include "R3BReader.h"
-#include <Rtypes.h>
 
-struct EXT_STR_h101_PSP_t;
-typedef struct EXT_STR_h101_PSP_t EXT_STR_h101_PSP;
-typedef struct EXT_STR_h101_PSP_onion_t EXT_STR_h101_PSP_onion;
+struct EXT_STR_h101_PSPX_t;
+typedef struct EXT_STR_h101_PSPX_t EXT_STR_h101_PSPX;
+typedef struct EXT_STR_h101_PSPX_onion_t EXT_STR_h101_PSPX_onion;
+class ext_data_struct_info;
+
+class FairLogger;
 class TClonesArray;
 
 /**
@@ -27,38 +29,40 @@ class TClonesArray;
  * This includes: Checking for error messages.
  * @author Ralf Plag (?), Bastian Loeher(?), Ina Syndikus
  * Modified by M. Holl, Dec 2019
+ * Modified by A. Jedele, July 2023
  */
 
 class R3BPspxReader : public R3BReader
 {
   public:
-    // Standard Constructor
-    R3BPspxReader(EXT_STR_h101_PSP*, size_t);
-
-    // Destructor
-    virtual ~R3BPspxReader();
+    /** Standard Constructor **/
+    R3BPspxReader(EXT_STR_h101_PSPX*, size_t);
+    /** Destructor **/
+    ~R3BPspxReader();
 
     // Setup structure information
-    virtual Bool_t Init(ext_data_struct_info*) override;
-
+    virtual bool Init(ext_data_struct_info*) override;
+    
     // Read data from full event structure
-    virtual Bool_t R3BRead() override;
+    virtual bool R3BRead() override;
+    
+    // Reset the output array 
+    virtual void Reset() override; 
 
-    // Reset
-    virtual void Reset() override;
+    // Accessor to select online mode
+    void SetOnline(bool option) { fOnline = option; }
 
-    /** Accessor to select online mode **/
-    void SetOnline(Bool_t option) { fOnline = option; }
 
   private:
-    EXT_STR_h101_PSP* fData; /**< Reader specific data structure from ucesb */
-    size_t fOffset;          /**< Data Offset */
+    EXT_STR_h101_PSPX* fData; /**< Reader specific data structure from ucesb */
+    unsigned int fOffset;          /**< Data Offset */
+    FairLogger* fLogger;     /**< FairLogger */
     // Don't store data for online
-    Bool_t fOnline;
-    std::vector<TClonesArray*> fMappedItems; /**< Array holding output (Mapped) data */
+    bool fOnline;
+    TClonesArray* fArray; /**< Array holding output (Mapped) data */
 
   public:
-    ClassDefOverride(R3BPspxReader, 4);
+    ClassDefOverride(R3BPspxReader, 0);
 };
 
 #endif

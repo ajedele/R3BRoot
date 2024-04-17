@@ -31,7 +31,6 @@
 #pragma link C++ class R3BWhiterabbitS8Reader+;
 #pragma link C++ class R3BWhiterabbitPspReader+;
 #pragma link C++ class R3BWhiterabbitLosReader+;
-#pragma link C++ class R3BWhiterabbitPspReader+;
 #pragma link C++ class R3BWhiterabbitMusicReader+;
 #pragma link C++ class R3BTrloiiTpatReader+;
 #pragma link C++ class R3BTrloiiSampReader+;
@@ -40,7 +39,8 @@
 #pragma link C++ class R3BTimestampMasterReader+;
 #pragma link C++ class R3BBeamMonitorReader+;
 #pragma link C++ class R3BPspxReader+;
-#pragma link C++ class R3BS515PspxReader+;
+#pragma link C++ class R3BPspxReader_s515+;
+//#pragma link C++ class R3BS515PspxReader+;
 #pragma link C++ class R3BBunchedFiberReader+;
 #pragma link C++ class R3BBunchedFiberSPMTTrigReader+;
 #pragma link C++ class R3BSfibReader+;
@@ -82,6 +82,7 @@
 #pragma link C++ class R3BMwpcReader+;
 #pragma link C++ class R3BSyncCheckReader+;
 #pragma link C++ class R3BMosaicReader+;
+#pragma link C++ class R3BSyncCheckReader_asyeos+;
 
 
 #pragma link C++ class EXT_STR_h101_unpack_t;
@@ -117,7 +118,8 @@
 #pragma link C++ class EXT_STR_h101_TOFD_onion_t;
 #pragma link C++ class EXT_STR_h101_TOFI_onion_t;
 #pragma link C++ class EXT_STR_h101_PTOF_onion_t;
-#pragma link C++ class EXT_STR_h101_PSP_onion_t;
+#pragma link C++ class EXT_STR_h101_PSPX_onion_t;
+#pragma link C++ class EXT_STR_h101_PSPX_t;
 #pragma link C++ class EXT_STR_h101_CALIFA_onion_t;
 #pragma link C++ class EXT_STR_h101_WRNEULAND_onion_t;
 #pragma link C++ class EXT_STR_h101_raw_nnp_tacquila_onion_t;

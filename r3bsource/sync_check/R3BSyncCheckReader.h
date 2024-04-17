@@ -31,20 +31,20 @@ class R3BSyncCheckReader : public R3BReader
     virtual ~R3BSyncCheckReader();
 
     // Setup structure information
-    virtual Bool_t Init(ext_data_struct_info*) override;
+    virtual bool Init(ext_data_struct_info*) override;
 
     // Read data from full event structure
-    virtual Bool_t R3BRead() override;
+    virtual bool R3BRead() override;
 
     // Store data in the output tree
-    inline void SetStoreData(Bool_t option) { fStoreData = option; }
+    inline void SetStoreData(bool option) { fStoreData = option; }
 
     // Reset
     virtual void Reset() override;
 
   private:
     // An event counter
-    UInt_t fNEvent;
+    unsigned int fNEvent;
     // Reader specific data structure from ucesb
     EXT_STR_h101_SYNC_CHECK* fData;
     // Offset of detector specific data in full data structure
@@ -52,7 +52,7 @@ class R3BSyncCheckReader : public R3BReader
     // Output array
     TClonesArray* fArray;
     // A flag to store ttree data for online
-    Bool_t fStoreData;
+    bool fStoreData;
 
   public:
     ClassDefOverride(R3BSyncCheckReader, 0);

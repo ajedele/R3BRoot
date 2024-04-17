@@ -17,13 +17,12 @@
 // -----       Updated May 11th 2022 by J.L. Rodriguez    -----
 // ------------------------------------------------------------
 
-#include "R3BRoluOnlineSpectra.h"
-#include "R3BCoarseTimeStitch.h"
-#include "R3BEventHeader.h"
-#include "R3BLogger.h"
-#include "R3BRoluCalData.h"
-#include "R3BRoluMappedData.h"
-#include "R3BTCalEngine.h"
+#include <R3BRoluOnlineSpectra.h>
+#include <R3BEventHeader.h>
+#include <R3BLogger.h>
+#include <R3BRoluCalData.h>
+#include <R3BRoluMappedData.h>
+#include <R3BTCalEngine.h>
 
 #include <FairLogger.h>
 #include <FairRootManager.h>
@@ -211,7 +210,6 @@ void R3BRoluOnlineSpectra::Exec(Option_t* option)
     {
         nPartROLU = fCalItems->GetEntriesFast();
         int iDet = 0;
-
         for (int iPart = 0; iPart < nPartROLU; iPart++)
         {
             R3BRoluCalData* calData = dynamic_cast<R3BRoluCalData*>(fCalItems->At(iPart));
