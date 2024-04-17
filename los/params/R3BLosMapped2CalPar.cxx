@@ -62,15 +62,8 @@ R3BLosMapped2CalPar::R3BLosMapped2CalPar()
 {
 }
 
-R3BLosMapped2CalPar::R3BLosMapped2CalPar(const char* name, Int_t iVerbose)
+R3BLosMapped2CalPar::R3BLosMapped2CalPar(const char* name, int iVerbose)
     : FairTask(name, iVerbose)
-    , fUpdateRate(1000000)
-    , fMinStats(100000)
-    , fTrigger(-1)
-    , fNofDetectors(0)
-    , fNofChannels(0)
-    , fNofTypes(0)
-    , fNEvents(0)
     , fCal_Par(NULL)
 {
 }
@@ -91,9 +84,9 @@ R3BLosMapped2CalPar::~R3BLosMapped2CalPar()
 InitStatus R3BLosMapped2CalPar::Init()
 {
     R3BLOG(info, "");
-    for (UInt_t i = 0; i < 16; i++)
+    for (int32_t i = 0; i < 16; i++)
     {
-        for (UInt_t k = 0; k < 3; k++)
+        for (int32_t k = 0; k < 3; k++)
         {
             Icount[i][k] = 0;
             Icounttrig[i][k] = 0;
@@ -139,9 +132,9 @@ void R3BLosMapped2CalPar::Exec(Option_t* option)
     if ((fTrigger >= 0) && (header) && (header->GetTrigger() != fTrigger))
         return;
 
-    UInt_t nHits = fMapped->GetEntries();
+    int32_t nHits = fMapped->GetEntries();
     // Loop over mapped hits
-    for (UInt_t i = 0; i < nHits; i++)
+    for (int32_t i = 0; i < nHits; i++)
     {
 
         R3BLosMappedData* hit = dynamic_cast<R3BLosMappedData*>(fMapped->At(i));
@@ -151,9 +144,9 @@ void R3BLosMapped2CalPar::Exec(Option_t* option)
         }
 
         // channel numbers are supposed to be 1-based (1..n)
-        UInt_t iDetector = hit->GetDetector() - 1; // now 0..n-1
-        UInt_t iChannel = hit->GetChannel() - 1;   // now 0..n-1
-        UInt_t iType = hit->GetType();             // 0,1,2,3
+        int32_t iDetector = hit->GetDetector() - 1; // now 0..n-1
+        int32_t iChannel = hit->GetChannel() - 1;   // now 0..n-1
+        int32_t iType = hit->GetType();             // 0,1,2,3
 
         // cout<<"Mapped2CalPar "<<iDetector<<", "<<iChannel<<", "<<iType<<endl;
         if (iType < 3)
@@ -188,13 +181,13 @@ void R3BLosMapped2CalPar::Exec(Option_t* option)
     if (fMappedTriggerItems && fMappedTriggerItems->GetEntriesFast() > 0)
     {
         auto mapped_num = fMappedTriggerItems->GetEntriesFast();
-        for (Int_t mapped_i = 0; mapped_i < mapped_num; mapped_i++)
+        for (int mapped_i = 0; mapped_i < mapped_num; mapped_i++)
         {
             auto mapped = dynamic_cast<R3BLosMappedData const*>(fMappedTriggerItems->At(mapped_i));
 
-            UInt_t iDetector = mapped->GetDetector() - 1; // now 0..n-1
-            UInt_t iChannel = mapped->GetChannel();
-            UInt_t iType = mapped->GetType() + 1; // 1,2,3...
+            int32_t iDetector = mapped->GetDetector() - 1; // now 0..n-1
+            int32_t iChannel = mapped->GetChannel();
+            int32_t iType = mapped->GetType() + 1; // 1,2,3...
             R3BLOG(debug1, "Det: " << iDetector << " channel" << iChannel << " raw " << mapped->GetTimeFine());
             fEngine->Fill(3 + iDetector, iChannel, iType, mapped->GetTimeFine());
             Icounttrig[iChannel - 1][iType - 1]++;
@@ -212,9 +205,9 @@ void R3BLosMapped2CalPar::FinishTask()
     fCal_Par->setChanged();
 
     R3BLOG(info, "Calibration of LOS detector");
-    for (Int_t i = 0; i < 16; i++)
+    for (int i = 0; i < 16; i++)
     {
-        for (Int_t k = 0; k < 3; k++)
+        for (int k = 0; k < 3; k++)
         {
             if (Icount[i][k] > fMinStats)
             {
@@ -224,9 +217,9 @@ void R3BLosMapped2CalPar::FinishTask()
     }
 
     R3BLOG(info, "Calibration of trigger signals from LOS detector");
-    for (Int_t i = 0; i < 16; i++)
+    for (int i = 0; i < 16; i++)
     {
-        for (Int_t k = 0; k < 3; k++)
+        for (int k = 0; k < 3; k++)
         {
             if (Icounttrig[i][k] > fMinStats)
             {

@@ -66,7 +66,7 @@ R3BLosReader::~R3BLosReader()
 
 Bool_t R3BLosReader::Init(ext_data_struct_info* a_struct_info)
 {
-    Int_t ok;
+    int ok;
     R3BLOG(info, "");
     EXT_STR_h101_LOS_ITEMS_INFO(ok, *a_struct_info, fOffset, EXT_STR_h101_LOS, 0);
     if (!ok)
@@ -165,7 +165,7 @@ Bool_t R3BLosReader::R3BRead()
     for (uint32_t d = 0; d < NUM_LOS_DETECTORS; d++)
     {
 
-        Int_t nsumv = 0, nsuml = 0, nsumt = 0;
+        int nsumv = 0, nsuml = 0, nsumt = 0;
 
         if (data->LOS[d].VTF > 0)
         {
@@ -321,13 +321,13 @@ Bool_t R3BLosReader::R3BRead()
                 }
 
                 // Find a leading edge to pair up with.
-                Int_t n = fArray->GetEntriesFast();
-                for (Int_t k = 0; k < n; k++)
+                int n = fArray->GetEntriesFast();
+                for (int k = 0; k < n; k++)
                 {
                     R3BLosMappedData const* hit = dynamic_cast<R3BLosMappedData*>(fArray->At(k));
 
-                    UInt_t const iTypeL = hit->GetType();
-                    UInt_t const iCha = hit->GetChannel();
+                    uint32_t const iTypeL = hit->GetType();
+                    uint32_t const iCha = hit->GetChannel();
 
                     // Only consider leading data.
                     if (1 == iTypeL && iCha == channel)

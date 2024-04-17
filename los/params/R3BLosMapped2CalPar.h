@@ -50,7 +50,7 @@ class R3BLosMapped2CalPar : public FairTask
      * @param name a name of the task.
      * @param iVerbose a verbosity level.
      */
-    R3BLosMapped2CalPar(const char* name, Int_t iVerbose = 1);
+    R3BLosMapped2CalPar(const char* name, int iVerbose = 1);
 
     /**
      * Destructor.
@@ -83,7 +83,7 @@ class R3BLosMapped2CalPar : public FairTask
      * Method for setting the update rate for control histograms
      * @param rate an update rate value (events).
      */
-    inline void SetUpdateRate(Int_t rate) { fUpdateRate = rate; }
+    inline void SetUpdateRate(int rate) { fUpdateRate = rate; }
 
     /**
      * Method for setting minimum required statistics per module.
@@ -92,20 +92,20 @@ class R3BLosMapped2CalPar : public FairTask
      * calibrated.
      * @param minStats a value of minimum statistics required.
      */
-    inline void SetMinStats(Int_t minStats) { fMinStats = minStats; }
+    inline void SetMinStats(int minStats) { fMinStats = minStats; }
 
     /**
      * Method for selecting events with certain trigger value.
      * @param trigger 1 - onspill, 2 - offspill, -1 - all events.
      */
-    inline void SetTrigger(Int_t trigger) { fTrigger = trigger; }
+    inline void SetTrigger(int trigger) { fTrigger = trigger; }
 
     /**
      * Method for setting number of LOS detectors and channels.
      * @param nDets number of detectors.
      * @param nCh number of channels per detector (4+master trigger?)
      */
-    inline void SetNofModules(Int_t nDets, Int_t nCh)
+    inline void SetNofModules(int nDets, int nCh)
     {
         fNofDetectors = nDets;
         fNofChannels = nCh; // = 4 or 8 or 16
@@ -114,21 +114,21 @@ class R3BLosMapped2CalPar : public FairTask
     }
 
   private:
-    Int_t fUpdateRate; /**< An update rate. */
-    Int_t fMinStats;   /**< Minimum statistics required per module. */
-    Int_t fTrigger;    /**< Trigger value. */
-    Int_t Icounts1 = 0;
-    Int_t Icounts2 = 0;
-    Int_t Icounts3 = 0;
-    Int_t Icount[16][3];
-    Int_t Icounttrig[16][3];
+    int fUpdateRate = 10000000; /**< An update rate. */
+    int fMinStats = 1000;   /**< Minimum statistics required per module. */
+    int fTrigger = -1;    /**< Trigger value. */
+    int Icounts1 = 0;
+    int Icounts2 = 0;
+    int Icounts3 = 0;
+    int Icount[16][3]{};
+    int Icounttrig[16][3]{};
 
-    UInt_t fNofDetectors; /**< Number of LOS detectors. */
-    UInt_t fNofChannels;  /**< Number of channels per detector. */
-    UInt_t fNofTypes = 3; /**< Number of time-types per channel (VFTX, TAMEX leading/trailing). */
-    UInt_t fNofModules;   /**< Total number of modules (=edges) to calibrate */
+    int32_t fNofDetectors = 1; /**< Number of LOS detectors. */
+    int32_t fNofChannels = 8;  /**< Number of channels per detector. */
+    int32_t fNofTypes = 3; /**< Number of time-types per channel (VFTX, TAMEX leading/trailing). */
+    int32_t fNofModules = 2;   /**< Total number of modules (=edges) to calibrate */
 
-    Int_t fNEvents;        /**< Event counter. */
+    int fNEvents = 0;        /**< Event counter. */
     R3BTCalPar* fCal_Par;  /**< Parameter container. */
     TClonesArray* fMapped; /**< Array with mapped data - input data. */
     TClonesArray* fMappedTriggerItems;
